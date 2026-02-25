@@ -45,8 +45,8 @@ const App = () => {
         {/* Dashboard Routes */}
         <Route path="/dashboard" element={loggedIn ? <DashboardLayout /> : <Navigate to="/login" />}>
           <Route index element={<Home />} />
-          <Route path="products" element={<PlaceholderPage title="Products" />} />
-          <Route path="products/addProduct" element={<PlaceholderPage title="Add Product" />} />
+          <Route path="Excersise/addExcersise" element={<PlaceholderPage title="Excersise/addExcersise" />} />
+          <Route path="Excersise/viewExcersise" element={<PlaceholderPage title="View Excersise" />} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<PlaceholderPage title="Settings" />} />
           <Route path="settings/general" element={<PlaceholderPage title="General Settings" />} />

@@ -41,59 +41,28 @@ const data = {
   navMain: [
     {
       platform: "Main",
-      title: "Products",
-      url: "Products",
+      title: "Dashboard",
+      url: "/dashboard",
       icon: SquareTerminal,
       isActive: true,
     },
     {
       platform: "Main",
-      title: "Products",
-      url: "Products",
+      title: "Excersise",
+      url: "Excersise",
       icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      platform: "Main",
-      title: "Products",
-      url: "Products",
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      platform: "Main",
-      title: "Products",
-      url: "Products",
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      platform: "Main",
-      title: "Products",
-      url: "Products",
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      platform: "Main",
-      title: "Products",
-      url: "Products",
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      platform: "Main",
-      title: "Products",
-      url: "Products",
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      platform: "Main",
-      title: "Products",
-      url: "Products",
-      icon: SquareTerminal,
-      isActive: true,
+      isActive: false,
+      items: [
+        {
+          title: "Add Excersise",
+          url: "Excersise/addExcersise",
+        },
+        {
+          title: "View Excersise",
+          url: "Excersise/viewExcersise",
+        },
+
+      ],
     },
     {
       title: "Settings",
@@ -132,7 +101,7 @@ export function AppSidebar({
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavSecondary items={data.navMain} />
+        <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user.user} />
