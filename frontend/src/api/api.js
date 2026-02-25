@@ -8,4 +8,10 @@ const api = axios.create({
     },
 });
 
+export const exceriseApi = axios.create({
+    baseURL: `https://exercisedb.dev/api/v1`,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 export default api;
