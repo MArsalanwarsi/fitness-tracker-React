@@ -14,6 +14,20 @@ export const fetchEquipment = createAsyncThunk(
     }
 );
 
+export const fetchExcersises = createAsyncThunk(
+    "excersise/fetchExcersises",
+    async (search, { rejectWithValue }) => {
+        try {
+            const response = await exceriseApi.get("/exercises/search", {
+                params: { q: search },
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
+
 
 const excersiseSlice = createSlice({
     name: "excersise",
@@ -37,6 +51,18 @@ const excersiseSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
+            .addCase(fetchExcersises.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchExcersises.fulfilled, (state, action) => {
+                state.loading = false;
+                state.excersises = action.payload.data;
+            })
+            .addCase(fetchExcersises.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            });
     }
 });
 

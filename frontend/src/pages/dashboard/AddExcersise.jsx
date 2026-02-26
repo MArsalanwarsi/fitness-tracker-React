@@ -32,9 +32,26 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxTrigger,
+    ComboboxValue,
+} from "@/components/ui/combobox"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchEquipment } from "../../redux/slice/excersiseSlice"
+import { Plus } from "lucide-react"
+import { AsyncAutocomplete } from "../../components/suggestionInput"
 
 // 1. Define the schema
 const exerciseSchema = z.object({
@@ -66,6 +83,8 @@ export default function AddExercisePage() {
         defaultValues: {
             name: "",
             description: "",
+            category: "",
+            difficulty: "",
             equipment: "",
             videoUrl: "",
             tags: [],
@@ -123,7 +142,11 @@ export default function AddExercisePage() {
                                     <FormItem>
                                         <FormLabel>Exercise Name *</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g. Barbell Squat" {...field} />
+                                            <AsyncAutocomplete
+                                                value={field.value || ""}
+                                                onChange={field.onChange}
+                                                placeholder="e.g. Barbell Squat"
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -136,21 +159,37 @@ export default function AddExercisePage() {
                                     control={form.control}
                                     name="category"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem >
                                             <FormLabel>Category *</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a category" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="strength">Strength</SelectItem>
-                                                    <SelectItem value="cardio">Cardio</SelectItem>
-                                                    <SelectItem value="flexibility">Flexibility</SelectItem>
-                                                    <SelectItem value="plyometrics">Plyometrics</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <div className="flex gap-3 items-center">
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select a category" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="strength">Strength</SelectItem>
+                                                        <SelectItem value="cardio">Cardio</SelectItem>
+                                                        <SelectItem value="flexibility">Flexibility</SelectItem>
+                                                        <SelectItem value="plyometrics">Plyometrics</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-80">
+                                                        <div className="space-y-4">
+                                                            <h4 className="font-medium text-sm">Add New Category</h4>
+                                                            <Input placeholder="Enter category name" />
+                                                            <Button size="sm" className="w-full">Add Category</Button>
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -180,31 +219,110 @@ export default function AddExercisePage() {
                                 />
                             </div>
 
-                            {/* Equipment Field */}
+
                             <FormField
                                 control={form.control}
                                 name="equipment"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Equipment Needed</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select equipment or leave blank" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {equipmentState && equipmentState.map((eq) => (
-                                                    <SelectItem key={eq.name} value={eq.name}>
-                                                        {eq.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="flex gap-3">
+                                            <Combobox items={equipmentState} defaultValue={"stepmill machine"}>
+                                                <ComboboxTrigger render={<Button variant="outline" className="w-64 justify-between font-normal"><ComboboxValue /></Button>} />
+                                                <ComboboxContent>
+                                                    <ComboboxInput showTrigger={false} placeholder="Search" />
+                                                    <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                                    <ComboboxList>
+                                                        {(item) => (
+                                                            <ComboboxItem key={item.name} value={item.name}>
+                                                                {item.name}
+                                                            </ComboboxItem>
+                                                        )}
+                                                    </ComboboxList>
+                                                </ComboboxContent>
+                                            </Combobox>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                                                        <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-80">
+                                                    <div className="space-y-4">
+                                                        <h4 className="font-medium text-sm">Add New Equipment</h4>
+                                                        <Input placeholder="Equipment name" />
+                                                        <Input placeholder="Image URL" />
+                                                        <Textarea placeholder="Usage instructions..." className="resize-none h-24" />
+                                                        <Button size="sm" className="w-full">Add Equipment</Button>
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+
+                            {/* Sets & Reps Fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="sets"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Sets</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="e.g. 4" min="1" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="reps"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Reps</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="e.g. 10" min="1" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* GIF URL Field */}
+                            <FormField
+                                control={form.control}
+                                name="gifUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Exercise GIF</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="https://example.com/exercise.gif" {...field} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Upload a GIF showing the exercise in action
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* GIF Preview */}
+                            {form.watch("gifUrl") && (
+                                <div className="flex justify-center">
+                                    <img
+                                        src={form.watch("gifUrl")}
+                                        alt="Exercise preview"
+                                        className="max-h-64 rounded-lg border"
+                                        onError={(e) => e.target.style.display = 'none'}
+                                    />
+                                </div>
+                            )}
 
                             {/* Interactive Tags Field */}
                             <FormField
