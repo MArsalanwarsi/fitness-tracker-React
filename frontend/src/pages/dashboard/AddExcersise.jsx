@@ -1,37 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { X } from "lucide-react"
-
+import { X, Plus, Image as ImageIcon } from "lucide-react"
+import { useDispatch, useSelector } from "react-redux"
+import { addExcersise, fetchEquipment } from "../../redux/slice/excersiseSlice"
 import { Button } from "@/components/ui/button"
-import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { AspectRatio } from "@/components/ui/aspect-ratio"
 import {
     Combobox,
     ComboboxContent,
@@ -42,373 +22,250 @@ import {
     ComboboxTrigger,
     ComboboxValue,
 } from "@/components/ui/combobox"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
-import { Badge } from "@/components/ui/badge"
-import { useDispatch, useSelector } from "react-redux"
-import { fetchEquipment } from "../../redux/slice/excersiseSlice"
-import { Plus } from "lucide-react"
 import { AsyncAutocomplete } from "../../components/suggestionInput"
-
-// 1. Define the schema
-const exerciseSchema = z.object({
-    name: z.string().min(2, "Exercise name must be at least 2 characters."),
-    description: z.string().optional(),
-    category: z.string({ required_error: "Please select a category." }),
-    difficulty: z.string({ required_error: "Please select a difficulty level." }),
-    equipment: z.string().optional(),
-    videoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-    tags: z.array(z.string()).min(1, "Add at least one tag."),
-})
-
-
+import { toast } from "react-toastify";
 
 export default function AddExercisePage() {
-    const [tagInput, setTagInput] = useState("")
     const dispatch = useDispatch();
     const equipmentState = useSelector((state) => state.excersise.equipments);
+    const excersiseState = useSelector((state) => state.excersise.excersises);
+
+
+    const [form, setForm] = useState({
+        name: "",
+        description: "",
+        category: "",
+        difficulty: "",
+        equipment: "",
+        excersiseImage: "",
+        sets: "",
+        reps: "",
+        tags: []
+    });
+
+    const [tagInput, setTagInput] = useState("");
 
     useEffect(() => {
         dispatch(fetchEquipment());
     }, [dispatch]);
 
+    const handleChange = (field, value) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+    };
+    const handleExcesiseChange = (field, value) => {
+        const image = excersiseState.find(ex => ex.name === value)?.gifUrl || "";
+        const descriptionText = excersiseState.find(ex => ex.name === value)?.instructions || "";
+        const descriptionString = Array.isArray(descriptionText)
+            ? descriptionText.join(", ")
+            : descriptionText;
 
-
-    // 2. Initialize the form
-    const form = useForm({
-        resolver: zodResolver(exerciseSchema),
-        defaultValues: {
-            name: "",
-            description: "",
-            category: "",
-            difficulty: "",
-            equipment: "",
-            videoUrl: "",
-            tags: [],
-        },
-    })
-
-    // 3. Handle Form Submission
-    function onSubmit(data) {
-        console.log("Submitted Data:", data)
-        // Add your API call here
+        setForm(prev => ({
+            ...prev,
+            [field]: value,
+            excersiseImage: image,
+            description: descriptionString
+        }));
+        t
     }
+    const handleEquipmentChange = (equipmentName) => {
+        setForm(prev => ({
+            ...prev,
+            equipment: equipmentName,
+        }));
+    };
 
-    // Helper to add tags
     const handleAddTag = (e) => {
         if (e.key === "Enter" || e.key === ",") {
-            e.preventDefault()
-            const newTag = tagInput.trim().toLowerCase()
-            const currentTags = form.getValues("tags")
-
-            if (newTag && !currentTags.includes(newTag)) {
-                form.setValue("tags", [...currentTags, newTag], { shouldValidate: true })
+            e.preventDefault();
+            const newTag = tagInput.trim().toLowerCase();
+            if (newTag && !form.tags.includes(newTag)) {
+                setForm(prev => ({ ...prev, tags: [...prev.tags, newTag] }));
             }
-            setTagInput("")
+            setTagInput("");
         }
-    }
+    };
 
-    // Helper to remove tags
     const handleRemoveTag = (tagToRemove) => {
-        const currentTags = form.getValues("tags")
-        form.setValue(
-            "tags",
-            currentTags.filter((tag) => tag !== tagToRemove),
-            { shouldValidate: true }
-        )
-    }
+        setForm(prev => ({
+            ...prev, tags: prev.tags.filter((tag) => tag !== tagToRemove)
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!form.name || !form.category || !form.difficulty || form.tags.length === 0 || !form.description || !form.excersiseImage || !form.equipment || !form.sets || !form.reps || form.sets <= 0 || form.reps <= 0) {
+            toast.error("Please fill out all required fields with valid values.");
+            return;
+        }
+        const result = await dispatch(addExcersise(form));
+        if (addExcersise.fulfilled.match(result)) {
+            toast.success("Exercise added successfully!");
+            setForm({
+                name: "",
+                description: "",
+                category: "",
+                difficulty: "",
+                equipment: "",
+                excersiseImage: "",
+                sets: "",
+                reps: "",
+                tags: []
+            });
+        } else {
+            const message = result.payload?.error || "Failed to add exercise.";
+            toast.error(message);
+        }
+    };
 
     return (
         <div className="container mx-auto py-10 max-w-2xl">
             <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl">Add New Exercise</CardTitle>
-                    <CardDescription>
-                        Create a new exercise by filling out the details below.
-                    </CardDescription>
+                    <CardDescription>Fill out the details below using standard React state.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
 
-                            {/* Name Field */}
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Exercise Name *</FormLabel>
-                                        <FormControl>
-                                            <AsyncAutocomplete
-                                                value={field.value || ""}
-                                                onChange={field.onChange}
-                                                placeholder="e.g. Barbell Squat"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Category & Difficulty Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="category"
-                                    render={({ field }) => (
-                                        <FormItem >
-                                            <FormLabel>Category *</FormLabel>
-                                            <div className="flex gap-3 items-center">
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select a category" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="strength">Strength</SelectItem>
-                                                        <SelectItem value="cardio">Cardio</SelectItem>
-                                                        <SelectItem value="flexibility">Flexibility</SelectItem>
-                                                        <SelectItem value="plyometrics">Plyometrics</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                                            <Plus className="h-4 w-4" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-80">
-                                                        <div className="space-y-4">
-                                                            <h4 className="font-medium text-sm">Add New Category</h4>
-                                                            <Input placeholder="Enter category name" />
-                                                            <Button size="sm" className="w-full">Add Category</Button>
-                                                        </div>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="difficulty"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Difficulty *</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select difficulty" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="beginner">Beginner</SelectItem>
-                                                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                                                    <SelectItem value="advanced">Advanced</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-
-                            <FormField
-                                control={form.control}
-                                name="equipment"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Equipment Needed</FormLabel>
-                                        <div className="flex gap-3">
-                                            <Combobox items={equipmentState} defaultValue={"stepmill machine"}>
-                                                <ComboboxTrigger render={<Button variant="outline" className="w-64 justify-between font-normal"><ComboboxValue /></Button>} />
-                                                <ComboboxContent>
-                                                    <ComboboxInput showTrigger={false} placeholder="Search" />
-                                                    <ComboboxEmpty>No items found.</ComboboxEmpty>
-                                                    <ComboboxList>
-                                                        {(item) => (
-                                                            <ComboboxItem key={item.name} value={item.name}>
-                                                                {item.name}
-                                                            </ComboboxItem>
-                                                        )}
-                                                    </ComboboxList>
-                                                </ComboboxContent>
-                                            </Combobox>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                                        <Plus className="h-4 w-4" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-80">
-                                                    <div className="space-y-4">
-                                                        <h4 className="font-medium text-sm">Add New Equipment</h4>
-                                                        <Input placeholder="Equipment name" />
-                                                        <Input placeholder="Image URL" />
-                                                        <Textarea placeholder="Usage instructions..." className="resize-none h-24" />
-                                                        <Button size="sm" className="w-full">Add Equipment</Button>
-                                                    </div>
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Sets & Reps Fields */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="sets"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Sets</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" placeholder="e.g. 4" min="1" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="reps"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Reps</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" placeholder="e.g. 10" min="1" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            {/* GIF URL Field */}
-                            <FormField
-                                control={form.control}
-                                name="gifUrl"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Exercise GIF</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="https://example.com/exercise.gif" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Upload a GIF showing the exercise in action
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* GIF Preview */}
-                            {form.watch("gifUrl") && (
-                                <div className="flex justify-center">
+                        {/* --- TOP IMAGE PREVIEW --- */}
+                        <div className="overflow-hidden rounded-md border bg-muted">
+                            <AspectRatio ratio={16 / 9} className="flex items-center justify-center">
+                                {form.excersiseImage || form.gifUrl ? (
                                     <img
-                                        src={form.watch("gifUrl")}
+                                        src={form.gifUrl || form.excersiseImage}
                                         alt="Exercise preview"
-                                        className="max-h-64 rounded-lg border"
-                                        onError={(e) => e.target.style.display = 'none'}
+                                        className="h-full w-full object-cover"
                                     />
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                        <ImageIcon className="h-10 w-10" />
+                                        <p className="text-sm font-medium">No equipment or GIF selected</p>
+                                    </div>
+                                )}
+                            </AspectRatio>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Exercise Name *</label>
+                            <AsyncAutocomplete
+                                value={form.name}
+                                onChange={(val) => handleExcesiseChange("name", val)}
+                                placeholder="e.g. Barbell Squat"
 
-                            {/* Interactive Tags Field */}
-                            <FormField
-                                control={form.control}
-                                name="tags"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Tags *</FormLabel>
-                                        <FormControl>
-                                            <div className="space-y-3">
-                                                <Input
-                                                    placeholder="Type a tag and press Enter (e.g. legs, push)..."
-                                                    value={tagInput}
-                                                    onChange={(e) => setTagInput(e.target.value)}
-                                                    onKeyDown={handleAddTag}
-                                                />
-                                                {field.value.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {field.value.map((tag) => (
-                                                            <Badge key={tag} variant="secondary" className="px-3 py-1 text-sm">
-                                                                {tag}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleRemoveTag(tag)}
-                                                                    className="ml-2 hover:text-destructive focus:outline-none"
-                                                                >
-                                                                    <X className="h-3 w-3" />
-                                                                </button>
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                )}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Category *</label>
+                                <div className="flex gap-3 items-center">
+                                    <Select onValueChange={(val) => handleChange("category", val)}>
+                                        <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="strength">Strength</SelectItem>
+                                            <SelectItem value="cardio">Cardio</SelectItem>
+                                            <SelectItem value="flexibility">Flexibility</SelectItem>
+                                            <SelectItem value="plyometrics">Plyometrics</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" size="sm" className="h-8 w-8 p-0"><Plus className="h-4 w-4" /></Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80">
+                                            <div className="space-y-4">
+                                                <h4 className="font-medium text-sm">Add New Category</h4>
+                                                <Input placeholder="Enter category name" />
+                                                <Button size="sm" className="w-full">Add Category</Button>
                                             </div>
-                                        </FormControl>
-                                        <FormDescription>
-                                            Press Enter or comma to add a tag.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Description Field */}
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Instructions / Description</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Explain how to perform the exercise properly..."
-                                                className="resize-none h-32"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Video URL Field */}
-                            <FormField
-                                control={form.control}
-                                name="videoUrl"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Video Tutorial URL</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="https://youtube.com/..." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Submit Button */}
-                            <div className="flex justify-end pt-4">
-                                <Button type="submit" className="w-full sm:w-auto">
-                                    Save Exercise
-                                </Button>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
                             </div>
-                        </form>
-                    </Form>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Difficulty *</label>
+                                <Select onValueChange={(val) => handleChange("difficulty", val)}>
+                                    <SelectTrigger><SelectValue placeholder="Select difficulty" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="beginner">Beginner</SelectItem>
+                                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                                        <SelectItem value="advanced">Advanced</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Equipment Needed</label>
+                            <div className="flex gap-3">
+                                <Combobox items={equipmentState} onValueChange={handleEquipmentChange} defaultValue="Select Equipment">
+                                    <ComboboxTrigger render={<Button variant="outline" className="w-64 justify-between font-normal"><ComboboxValue /></Button>} />
+                                    <ComboboxContent>
+                                        <ComboboxInput showTrigger={false} placeholder="Search" />
+                                        <ComboboxEmpty>No items found.</ComboboxEmpty>
+                                        <ComboboxList>
+                                            {(item) => (
+                                                <ComboboxItem key={item.name} value={item.name}>{item.name}</ComboboxItem>
+                                            )}
+                                        </ComboboxList>
+                                    </ComboboxContent>
+                                </Combobox>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-8 w-8 p-0"><Plus className="h-4 w-4" /></Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80">
+                                        <div className="space-y-4">
+                                            <h4 className="font-medium text-sm">Add New Equipment</h4>
+                                            <Input placeholder="Equipment name" />
+                                            <Textarea placeholder="Usage instructions..." className="h-24" />
+                                            <Button size="sm" className="w-full">Add Equipment</Button>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Sets</label>
+                                <Input type="number" placeholder="e.g. 4" value={form.sets} onChange={(e) => handleChange("sets", e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Reps</label>
+                                <Input type="number" placeholder="e.g. 10" value={form.reps} onChange={(e) => handleChange("reps", e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Tags *</label>
+                            <Input
+                                placeholder="Press Enter or comma to add"
+                                value={tagInput}
+                                onChange={(e) => setTagInput(e.target.value)}
+                                onKeyDown={handleAddTag}
+                            />
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {form.tags.map((tag) => (
+                                    <Badge key={tag} variant="secondary" className="px-3 py-1">
+                                        {tag}
+                                        <X className="ml-2 h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => handleRemoveTag(tag)} />
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Instructions / Description</label>
+                            <Textarea
+                                placeholder="How to perform the exercise..."
+                                className="h-32"
+                                value={form.description}
+                                onChange={(e) => handleChange("description", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex justify-end pt-4">
+                            <Button type="submit" className="w-full sm:w-auto">Save Exercise</Button>
+                        </div>
+                    </form>
                 </CardContent>
             </Card>
         </div>
-    )
+    );
 }

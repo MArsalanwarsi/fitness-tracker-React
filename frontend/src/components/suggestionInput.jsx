@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input" // Adjust path to your shadcn Input
+import { useDispatch, useSelector } from "react-redux"
+import { fetchExcersises } from "../redux/slice/excersiseSlice"
 
 export function AsyncAutocomplete({ value, onChange, placeholder }) {
-    const [suggestions, setSuggestions] = useState ([])
+    const [suggestions, setSuggestions] = useState([])
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const wrapperRef = useRef(null)
+    const dispatch = useDispatch();
+    const excersiseSlice = useSelector((state) => state.excersise)
 
     // 1. Fetch data from API with a debounce
     useEffect(() => {
-        if (!value || value.length < 2) {
+        if (!value || value.length < 1) {
             setSuggestions([])
             return
         }
@@ -17,12 +21,9 @@ export function AsyncAutocomplete({ value, onChange, placeholder }) {
         const fetchSuggestions = async () => {
             setIsLoading(true)
             try {
-                // TODO: Replace with your actual API endpoint
-                // const response = await fetch(`/api/exercises?search=${value}`)
-                // const data = await response.json()
-
+               await dispatch(fetchExcersises(value))
                 // MOCK API BEHAVIOR FOR TESTING:
-                const mockDatabase = ["Barbell Squat", "Barbell Row", "Bench Press", "Bulgarian Split Squat"]
+                const mockDatabase = excersiseSlice.excersises.map(ex => ex.name)
                 const data = mockDatabase.filter(item =>
                     item.toLowerCase().includes(value.toLowerCase())
                 )

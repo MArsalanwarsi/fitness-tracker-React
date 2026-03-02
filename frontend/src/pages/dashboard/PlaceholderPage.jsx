@@ -12,6 +12,7 @@ export default function PlaceholderPage({ title }) {
                 <h1 className="text-2xl font-bold">{title}</h1>
                 <p className="text-muted-foreground mt-2">Content for {title} page goes here.</p>
             </div>
+            
         </div>
     );
 }

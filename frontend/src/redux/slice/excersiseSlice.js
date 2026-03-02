@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import {exceriseApi} from "../../api/api";
+import {exceriseApi, excesiseCrudApi} from "../../api/api";
 
 
 export const fetchEquipment = createAsyncThunk(
@@ -28,12 +28,25 @@ export const fetchExcersises = createAsyncThunk(
     }
 );
 
+export const addExcersise = createAsyncThunk(
+    "excersise/addExcersise",
+    async (excersiseData, { rejectWithValue }) => {
+        try {
+            const response = await excesiseCrudApi.post("/addExcersise", excersiseData);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }   
+    }
+);
+
 
 const excersiseSlice = createSlice({
     name: "excersise",
     initialState: {
         excersises: [],
         equipments: [],
+        userExcersises: [],
         loading: false,
         error: null,
     },
@@ -60,6 +73,18 @@ const excersiseSlice = createSlice({
                 state.excersises = action.payload.data;
             })
             .addCase(fetchExcersises.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            .addCase(addExcersise.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(addExcersise.fulfilled, (state, action) => {
+                state.loading = false;
+                state.userExcersises=action.payload.data;
+            })
+            .addCase(addExcersise.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             });

@@ -14,4 +14,11 @@ export const exceriseApi = axios.create({
         "Content-Type": "application/json",
     },
 });
+
+export const excesiseCrudApi = axios.create({
+    baseURL: `http://localhost:5000/exercise`,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 export default api;
