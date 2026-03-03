@@ -40,7 +40,8 @@ export default function AddExercisePage() {
         excersiseImage: "",
         sets: "",
         reps: "",
-        tags: []
+        tags: [],
+        exerciseId:""
     });
 
     const [tagInput, setTagInput] = useState("");
@@ -52,20 +53,22 @@ export default function AddExercisePage() {
     const handleChange = (field, value) => {
         setForm(prev => ({ ...prev, [field]: value }));
     };
-    const handleExcesiseChange = (field, value) => {
-        const image = excersiseState.find(ex => ex.name === value)?.gifUrl || "";
-        const descriptionText = excersiseState.find(ex => ex.name === value)?.instructions || "";
+    const handleExcesiseChange = async (field, value) => {
+        const image = await excersiseState.find(ex => ex.name === value)?.gifUrl || "";
+        const exerciseId= await excersiseState.find(ex=>ex.name === value)?.exerciseId || "";
+        const descriptionText = await excersiseState.find(ex => ex.name === value)?.instructions || "";
         const descriptionString = Array.isArray(descriptionText)
             ? descriptionText.join(", ")
             : descriptionText;
 
-        setForm(prev => ({
+       await setForm(prev => ({
             ...prev,
             [field]: value,
             excersiseImage: image,
-            description: descriptionString
+            description: descriptionString,
+            exerciseId:exerciseId,
         }));
-        t
+        
     }
     const handleEquipmentChange = (equipmentName) => {
         setForm(prev => ({
@@ -77,7 +80,7 @@ export default function AddExercisePage() {
     const handleAddTag = (e) => {
         if (e.key === "Enter" || e.key === ",") {
             e.preventDefault();
-            const newTag = tagInput.trim().toLowerCase();
+            const newTag = tagInput.trim().toUpperCase();
             if (newTag && !form.tags.includes(newTag)) {
                 setForm(prev => ({ ...prev, tags: [...prev.tags, newTag] }));
             }
@@ -109,10 +112,11 @@ export default function AddExercisePage() {
                 excersiseImage: "",
                 sets: "",
                 reps: "",
-                tags: []
+                tags: [],
+                exerciseId:""
             });
         } else {
-            const message = result.payload?.error || "Failed to add exercise.";
+            const message = result.payload?.error ;
             toast.error(message);
         }
     };

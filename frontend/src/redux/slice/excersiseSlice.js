@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import {exceriseApi, excesiseCrudApi} from "../../api/api";
+import { exceriseApi, excesiseCrudApi } from "../../api/api";
+import Cookies from 'js-cookie';
 
 
 export const fetchEquipment = createAsyncThunk(
@@ -31,12 +32,21 @@ export const fetchExcersises = createAsyncThunk(
 export const addExcersise = createAsyncThunk(
     "excersise/addExcersise",
     async (excersiseData, { rejectWithValue }) => {
+        const token = Cookies.get('auth_token');
+
+        if (!token) {
+            return rejectWithValue("No token found");
+        }
         try {
-            const response = await excesiseCrudApi.post("/addExcersise", excersiseData);
+            const response = await excesiseCrudApi.post("/addExcersise", excersiseData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response.data);
-        }   
+        }
     }
 );
 
@@ -50,7 +60,7 @@ const excersiseSlice = createSlice({
         loading: false,
         error: null,
     },
-    extraReducers: (builder) => { 
+    extraReducers: (builder) => {
         builder
             .addCase(fetchEquipment.pending, (state) => {
                 state.loading = true;
@@ -82,7 +92,9 @@ const excersiseSlice = createSlice({
             })
             .addCase(addExcersise.fulfilled, (state, action) => {
                 state.loading = false;
-                state.userExcersises=action.payload.data;
+                state.userExcersises = action.payload.data;
+                console.log(action.payload);
+                
             })
             .addCase(addExcersise.rejected, (state, action) => {
                 state.loading = false;

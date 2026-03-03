@@ -29,13 +29,21 @@ const excersiseModel = new mongoose.Schema({
     type:Number,
     require:true
    },
-   tags:{
-    type:[String],
+   tags:[{
+    type:String,
+    require:true
+   }],
+   instructions:{
+    type:String,
     require:true
    },
-   instructions:{
-    type:[String],
-    require:true
+   userId:{
+      type:String,
+      require:true
+   },
+   excersiseId:{
+      type:String,
+      require:true
    }
 }, { timestamps: true });
 
