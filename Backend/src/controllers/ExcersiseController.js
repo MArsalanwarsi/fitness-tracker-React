@@ -30,4 +30,14 @@ return res.status(500).json({ error: error.message });
 }
 }
 
-export {AddExcersise}
+const getUserExcersises=async(req,res)=>{
+    try {
+        const userId = req.user.id;
+        const excersises = await excersiseModel.find({ userId: userId });
+        return res.status(200).json({ excersises });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
+
+export {AddExcersise,getUserExcersises}

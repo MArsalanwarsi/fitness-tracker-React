@@ -3,14 +3,14 @@ import DashboardLayout from "@/layouts/DashboardLayout"
 import WebsiteLayout from "@/layouts/WebsiteLayout"
 import WebsiteHome from "@/pages/website/WebsiteHome"
 import PlaceholderPage from "@/pages/dashboard/PlaceholderPage"
-import Login from "./pages/Login"
-import Register from "./pages/Register"
+import Login from "@/pages/Login"
+import Register from "@/pages/Register"
 import { Bounce, ToastContainer } from "react-toastify"
 import { useSelector, useDispatch } from "react-redux"
-import { checkAuthStatus } from "./redux/slice/authSlice"
+import { checkAuthStatus } from "@/redux/slice/authSlice"
 import { useEffect } from "react"
-import Home from "./pages/dashboard/Home"
-import Profile from "./pages/dashboard/Profile"
+import Home from "@/pages/dashboard/Home"
+import Profile from "@/pages/dashboard/Profile"
 import { LoadingPage } from "@/components/loadingPage"
 import ForgotPassword from "./components/shadcn-studio/blocks/forgot-password-01/forgot-password-01"
 import TwoFactorAuthentication from "./components/shadcn-studio/blocks/two-factor-authentication-01/two-factor-authentication-01"
@@ -26,7 +26,6 @@ const App = () => {
     dispatch(checkAuthStatus());
   }, [dispatch]);
 
-  const isAdmin = useSelector((state) => state.auth.isAdmin);
   const loggedIn = useSelector((state) => state.auth.loggedIn);
   const forgotemail = useSelector((state) => state.forgot.email);
   const otpVerified = useSelector((state) => state.forgot.otpVerified);
@@ -62,7 +61,7 @@ const App = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/forgetPassword" element={<ForgotPassword />} />
         <Route path="/otpVerify" element={forgotemail ? <TwoFactorAuthentication /> : <Navigate to="/forgetPassword" />} />
-        <Route path="/resetPassword" element={forgotemail ? otpVerified ? <ResetPassword /> : <Navigate to="/otpVerify" /> : <Navigate to="/forgetPassword" />} />
+        <Route path="/resetPassword" element={forgotemail ? (otpVerified ? <ResetPassword /> : <Navigate to="/otpVerify" />) : <Navigate to="/forgetPassword" />} />
         <Route path="/loading" element={<LoadingPage />} />
 
       </Routes>

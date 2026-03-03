@@ -45,10 +45,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useState } from "react"
 
 export default function AdvancedExerciseTable() {
   // --- Data (Added image/gif URLs) ---
-  const [data] = React.useState([
+  const [data] = useState([
     { id: "EX-001", name: "Barbell Squat", category: "Strength", difficulty: "Intermediate", equipment: "Barbell", status: "Active", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=100&q=80" },
     { id: "EX-002", name: "Treadmill Run", category: "Cardio", difficulty: "Beginner", equipment: "Treadmill", status: "Active", image: "" },
     { id: "EX-003", name: "Deadlift", category: "Strength", difficulty: "Advanced", equipment: "Barbell", status: "Archived", image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=100&q=80" },
@@ -57,12 +58,12 @@ export default function AdvancedExerciseTable() {
   ]);
 
   // --- States ---
-  const [globalFilter, setGlobalFilter] = React.useState("")
-  const [categoryFilter, setCategoryFilter] = React.useState("all")
-  const [pageSize, setPageSize] = React.useState(10)
-  const [currentPage, setCurrentPage] = React.useState(1)
-  const [sorting, setSorting] = React.useState({ column: "name", direction: "asc" })
-  const [columnVisibility, setColumnVisibility] = React.useState({
+  const [globalFilter, setGlobalFilter] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [sorting, setSorting] = useState({ column: "name", direction: "asc" })
+  const [columnVisibility, setColumnVisibility] = useState({
     id: true,
     category: true,
     difficulty: true,
@@ -82,7 +83,7 @@ export default function AdvancedExerciseTable() {
   }
 
   // --- Combined Filtering & Sorting Logic ---
-  const processedData = React.useMemo(() => {
+  const processedData = useMemo(() => {
     let filtered = data.filter((row) => {
       const matchesSearch = Object.values(row).some(val => 
         String(val).toLowerCase().includes(globalFilter.toLowerCase())

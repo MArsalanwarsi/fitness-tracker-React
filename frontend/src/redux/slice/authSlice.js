@@ -3,7 +3,7 @@ import api from "../../api/api";
 import { jwtDecode } from "jwt-decode";
 import Cookies from 'js-cookie';
 
-// REGISTER
+
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (userData, { rejectWithValue }) => {
@@ -16,7 +16,6 @@ export const registerUser = createAsyncThunk(
   }
 );
 
-// LOGIN
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (userData, { rejectWithValue }) => {
@@ -29,12 +28,11 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-//PROFILE
 export const getProfile = createAsyncThunk(
   "auth/profile",
   async (_, { rejectWithValue }) => {
     const token = Cookies.get('auth_token');
-    
+
     if (!token) {
       return rejectWithValue("No token found");
     }
@@ -52,7 +50,6 @@ export const getProfile = createAsyncThunk(
   }
 );
 
-// authSlice.js
 export const checkAuthStatus = createAsyncThunk(
   "auth/checkStatus",
   async (_, { rejectWithValue }) => {
@@ -65,7 +62,7 @@ export const checkAuthStatus = createAsyncThunk(
       });
       return response.data;
     } catch (error) {
-      Cookies.remove('auth_token'); 
+      Cookies.remove('auth_token');
       return rejectWithValue(error.response?.data || "Session expired");
     }
   }
@@ -96,13 +93,13 @@ const authSlice = createSlice({
     user: null,
     loading: false,
     error: null,
-    isAdmin:false,
-    loggedIn:false,
+    isAdmin: false,
+    loggedIn: false,
   },
   reducers: {
     logout: (state) => {
       state.user = null;
-      state.isAdmin=false;
+      state.isAdmin = false;
       state.loggedIn = false;
       state.error = null;
       Cookies.remove('auth_token');
@@ -110,7 +107,6 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // REGISTER
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -123,37 +119,33 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // LOGIN
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.loggedIn=true;
+        state.loggedIn = true;
         state.user = action.payload;
-        if(state.user.user.role=="admin"){
-          state.isAdmin=true
-        }else{
-          state.isAdmin=false
+        if (state.user.user.role == "admin") {
+          state.isAdmin = true
+        } else {
+          state.isAdmin = false
         };
-        const token=state.user.token;
+        const token = state.user.token;
         const decoded = jwtDecode(token);
         const expirationDate = new Date(decoded.exp * 1000);
-        Cookies.set('auth_token', token, { 
-        expires: expirationDate,
-        secure: true,
-        sameSite: 'strict'
-    });
-        
+        Cookies.set('auth_token', token, {
+          expires: expirationDate,
+          secure: true,
+          sameSite: 'strict'
+        });
+
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      });
-    // PROFILE
-    builder
+      })
       .addCase(getProfile.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -161,38 +153,35 @@ const authSlice = createSlice({
       .addCase(getProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
-         if(state.user.user.role=="admin"){
-          state.isAdmin=true
-        }else{
-          state.isAdmin=false
+        if (state.user.user.role == "admin") {
+          state.isAdmin = true
+        } else {
+          state.isAdmin = false
         };
       })
       .addCase(getProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      });
-    // CHECK AUTH STATUS
-    builder
+      })
       .addCase(checkAuthStatus.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-    .addCase(checkAuthStatus.fulfilled, (state, action) => {
-  state.loading = false;
-  state.loggedIn = true;
-  state.user = action.payload;
-  state.isAdmin = action.payload.user.role === "admin";
-})
-.addCase(checkAuthStatus.rejected, (state) => {
-  state.loading = false;
-  state.loggedIn = false;
-  state.user = null;
-})
-    // UPDATE PROFILE IMAGE
-    .addCase(updateProfileImage.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    })
+      .addCase(checkAuthStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        state.loggedIn = true;
+        state.user = action.payload;
+        state.isAdmin = action.payload.user.role === "admin";
+      })
+      .addCase(checkAuthStatus.rejected, (state) => {
+        state.loading = false;
+        state.loggedIn = false;
+        state.user = null;
+      })
+      .addCase(updateProfileImage.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(updateProfileImage.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;

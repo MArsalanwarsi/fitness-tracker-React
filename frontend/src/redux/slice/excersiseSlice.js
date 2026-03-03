@@ -50,6 +50,26 @@ export const addExcersise = createAsyncThunk(
     }
 );
 
+export const fetchUserExcersises = createAsyncThunk(
+    "excersise/fetchUserExcersises",
+    async (_, { rejectWithValue }) => {
+        const token = Cookies.get('auth_token');
+        if (!token) {
+            return rejectWithValue("No token found");
+        }
+        try {
+            const response = await excesiseCrudApi.get("/getUserExcersises", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
+
 
 const excersiseSlice = createSlice({
     name: "excersise",
@@ -97,6 +117,18 @@ const excersiseSlice = createSlice({
                 
             })
             .addCase(addExcersise.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            .addCase(fetchUserExcersises.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchUserExcersises.fulfilled, (state, action) => {
+                state.loading = false;
+                state.userExcersises = action.payload.excersises;
+            })
+            .addCase(fetchUserExcersises.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             });
