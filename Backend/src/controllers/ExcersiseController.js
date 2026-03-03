@@ -39,5 +39,22 @@ const getUserExcersises=async(req,res)=>{
         return res.status(500).json({ error: error.message });
     }
 }
+const deleteExcersise = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const excersiseId = req.params.id;
+        const excersise = await excersiseModel.findOneAndDelete({ userId: userId, _id: excersiseId });
+        if (!excersise) {
+            return res.status(404).json({ message: "Exercise not found" });
+        }
+        return res.status(200).json({ message: "Exercise deleted successfully" });
+    }
+    catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
 
-export {AddExcersise,getUserExcersises}
+
+
+
+export {AddExcersise,getUserExcersises,deleteExcersise}

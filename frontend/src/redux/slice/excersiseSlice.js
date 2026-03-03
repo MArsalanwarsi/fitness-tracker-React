@@ -70,6 +70,37 @@ export const fetchUserExcersises = createAsyncThunk(
     }
 );
 
+export const getExcersiseById = createAsyncThunk(
+    "excersise/getExcersiseById",
+    async (excersiseId, { rejectWithValue }) => {
+        try {
+            const response = await exceriseApi.get(`exercises/${excersiseId}`);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
+export const deleteExcersise = createAsyncThunk(
+    "excersise/deleteExcersise",
+    async (excersiseId, { rejectWithValue }) => {
+        const token = Cookies.get('auth_token');
+        if (!token) {
+            return rejectWithValue("No token found");
+        }
+        try {
+            const response = await excesiseCrudApi.delete(`/deleteExcersise/${excersiseId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
+
 
 const excersiseSlice = createSlice({
     name: "excersise",
@@ -77,6 +108,7 @@ const excersiseSlice = createSlice({
         excersises: [],
         equipments: [],
         userExcersises: [],
+        excersisebyId: [],
         loading: false,
         error: null,
     },
@@ -129,6 +161,30 @@ const excersiseSlice = createSlice({
                 state.userExcersises = action.payload.excersises;
             })
             .addCase(fetchUserExcersises.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            .addCase(getExcersiseById.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(getExcersiseById.fulfilled, (state, action) => {
+                state.loading = false;
+                state.excersisebyId = action.payload.data;
+            })
+            .addCase(getExcersiseById.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            .addCase(deleteExcersise.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(deleteExcersise.fulfilled, (state, action) => {
+                state.loading = false;
+                state.userExcersises = state.userExcersises.filter(ex => ex._id !== action.payload.excersiseId);
+            })
+            .addCase(deleteExcersise.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             });
