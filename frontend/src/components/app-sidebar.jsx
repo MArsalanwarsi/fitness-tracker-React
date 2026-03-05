@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/sidebar"
 import { useSelector } from "react-redux";
 import { NavSecondary } from "./nav-secondary"
-// This is sample data.
 const data = {
   teams: [
     {
@@ -58,11 +57,17 @@ const data = {
           url: "Excersise/addExcersise",
         },
         {
+          title: "Add Category",
+          url: "Excersise/addCategory",
+        },
+        {
           title: "View Excersise",
           url: "Excersise/viewExcersise",
         },
-        
-
+         {
+          title: "View Categories",
+          url: "Excersise/viewCategories",
+        },
       ],
     },
     {

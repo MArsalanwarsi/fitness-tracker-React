@@ -24,11 +24,13 @@ import {
 } from "@/components/ui/combobox"
 import { AsyncAutocomplete } from "../../components/suggestionInput"
 import { toast } from "react-toastify";
+import { fetchCategories } from "../../redux/slice/categorySlice"
 
 export default function AddExercisePage() {
     const dispatch = useDispatch();
-    const equipmentState = useSelector((state) => state.excersise.equipments);
-    const excersiseState = useSelector((state) => state.excersise.excersises);
+    const equipmentState = useSelector((state) => state.excersise.equipments || []);
+    const excersiseState = useSelector((state) => state.excersise.excersises || []);
+    const categoryState = useSelector((state) => state.category.categories || []);
 
 
     const [form, setForm] = useState({
@@ -48,6 +50,7 @@ export default function AddExercisePage() {
 
     useEffect(() => {
         dispatch(fetchEquipment());
+        dispatch(fetchCategories());
     }, [dispatch]);
 
     const handleChange = (field, value) => {
@@ -168,6 +171,9 @@ export default function AddExercisePage() {
                                             <SelectItem value="cardio">Cardio</SelectItem>
                                             <SelectItem value="flexibility">Flexibility</SelectItem>
                                             <SelectItem value="plyometrics">Plyometrics</SelectItem>
+                                            {categoryState.map((cat) => (
+                                                <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <Popover>

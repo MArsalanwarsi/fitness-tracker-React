@@ -21,4 +21,11 @@ export const excesiseCrudApi = axios.create({
         "Content-Type": "application/json",
     },
 });
+
+export const categoryCrudApi = axios.create({
+       baseURL: `http://localhost:5000/category`,
+    headers: {
+        "Content-Type": "application/json",
+    },
+})
 export default api;

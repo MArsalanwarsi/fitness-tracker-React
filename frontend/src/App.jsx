@@ -17,6 +17,8 @@ import TwoFactorAuthentication from "./components/shadcn-studio/blocks/two-facto
 import ResetPassword from "./components/shadcn-studio/blocks/reset-password-01/reset-password-01"
 import AddExercisePage from "./pages/dashboard/AddExcersise"
 import ViewExcersise from "./pages/dashboard/ViewExcersise"
+import ViewCategory from "./pages/dashboard/ViewCategory"
+import AddCategory from "./pages/dashboard/AddCategory"
 
 const App = () => {
   const dispatch = useDispatch();
@@ -47,8 +49,9 @@ const App = () => {
         <Route path="/dashboard" element={loggedIn ? <DashboardLayout /> : <Navigate to="/login" />}>
           <Route index element={<Home />} />
           <Route path="Excersise/addExcersise" element={<AddExercisePage/>} />
+          <Route path="Excersise/addCategory" element={<AddCategory/>} />
           <Route path="Excersise/viewExcersise" element={<ViewExcersise/>} />
-          <Route path="Excersise/addCategory" element={<PlaceholderPage title="View Excersise" />} />
+          <Route path="Excersise/viewCategories" element={<ViewCategory/>} />
           <Route path="profile" element={<Profile />} />
           <Route path="settings" element={<PlaceholderPage title="Settings" />} />
           <Route path="settings/general" element={<PlaceholderPage title="General Settings" />} />

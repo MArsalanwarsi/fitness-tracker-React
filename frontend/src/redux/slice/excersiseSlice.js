@@ -145,8 +145,6 @@ const excersiseSlice = createSlice({
             .addCase(addExcersise.fulfilled, (state, action) => {
                 state.loading = false;
                 state.userExcersises = action.payload.data;
-                console.log(action.payload);
-                
             })
             .addCase(addExcersise.rejected, (state, action) => {
                 state.loading = false;
