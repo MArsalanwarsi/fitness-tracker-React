@@ -1,277 +1,798 @@
-import React, { useState } from 'react';
-import { 
-  Search, Bell, User, Flame, Footprints, Droplets, 
-  Plus, Moon, Brain, Heart, Calendar, MoreHorizontal, 
-  Smile, Frown, Meh, Utensils, GlassWater, Bed, History, Trash2, Target
-} from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Flame, Footprints, Droplets, Moon, Target, Trash2,
+  History, Smile, Frown, Meh, GlassWater, Bed, Utensils,
+  TrendingUp, TrendingDown, Dumbbell, Scale, Plus,
+  Activity, Zap, Award, BarChart2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogTrigger, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  BarChart, Bar, XAxis, ResponsiveContainer, Tooltip,
+  CartesianGrid, AreaChart, Area,
+} from "recharts";
+const VIZ = {
+  water: "#3b82f6",
+  calories: "#f97316",
+  steps: "#10b981",
+  sleep: "#8b5cf6",
+  weight: "#10b981",
+  protein: "#f97316",
+  carbs: "#3b82f6",
+  fat: "#8b5cf6",
+  red: "#ef4444",
+};
 
-const Home = () => {
-  // --- States ---
-  const [activeTab, setActiveTab] = useState("calories");
-  const [newVal, setNewVal] = useState("");
-  const [mood, setMood] = useState('good');
-  
-  // User Targets (The "Goals")
-  const [goals, setGoals] = useState({
-    water: 3,      // Litres
-    calories: 2500, // kcal
-    steps: 10000,   // steps
-    sleep: 8        // hours
-  });
+const TYPE_COLOR = {
+  Water: VIZ.water, Steps: VIZ.steps, Calories: VIZ.calories,
+  Sleep: VIZ.sleep, Workout: VIZ.red, Weight: VIZ.weight,
+};
 
-  // Current Stats (Last 7 days, index 6 is 'Today')
-  const [stats, setStats] = useState({
-    water: [2.1, 1.8, 2.4, 1.5, 0.8, 2.2, 1.4],
-    calories: [1800, 2100, 1600, 2400, 1900, 2200, 1250],
-    steps: [8000, 10000, 7500, 12000, 6000, 9500, 7420],
-    sleep: 6.5
-  });
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"];
+const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const UNIT_LABEL = { water: "Litres", calories: "kcal", steps: "steps", sleep: "hours", weight: "kg" };
 
-  const [logs, setLogs] = useState([
-    { id: 1, type: "Water", amount: "500ml", time: "09:30 AM" },
-    { id: 2, type: "Steps", amount: "2,400", time: "11:15 AM" },
-  ]);
-
-  // --- Logic ---
-  const handleUpdate = (type, isGoal = false) => {
-    const value = parseFloat(newVal);
-    if (isNaN(value)) return;
-
-    if (isGoal) {
-      setGoals(prev => ({ ...prev, [type]: value }));
-    } else {
-      setStats(prev => {
-        if (type === 'sleep') return { ...prev, sleep: value };
-        const newArr = [...prev[type]];
-        newArr[6] += value; 
-        return { ...prev, [type]: newArr };
-      });
-      setLogs(prev => [{
-        id: Date.now(),
-        type: type.charAt(0).toUpperCase() + type.slice(1),
-        amount: type === 'water' ? `${value}L` : type === 'sleep' ? `${value}h` : value.toLocaleString(),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }, ...prev]);
+const pct = (v, t) => Math.min(Math.round((v / t) * 100), 100);
+const ScopedStyles = () => (
+  <style>{`
+    @keyframes ring-draw { from { stroke-dashoffset: 502; } }
+    .fit-ring circle:last-child { animation: ring-draw .8s ease forwards; }
+    @keyframes fit-pop { from { opacity:0; transform:scale(.95) translateY(5px); } }
+    .fit-pop { animation: fit-pop .18s ease; }
+    .fit-glass {
+      width: 2rem; height: 2.5rem;
+      border: 2px solid ${VIZ.water};
+      border-radius: .25rem .25rem .5rem .5rem;
+      display: flex; align-items: flex-end;
+      overflow: hidden; cursor: pointer;
+      transition: transform .15s;
     }
-    setNewVal("");
-  };
+    .fit-glass:hover { transform: scale(1.1); }
+    .fit-glass-fill { width: 100%; transition: height .3s; background: ${VIZ.water}; opacity: .8; }
+    .fit-del { color: hsl(var(--muted-foreground)); transition: color .15s; background: none; border: none; cursor: pointer; padding: .2rem; border-radius: .35rem; display:flex; align-items:center; }
+    .fit-del:hover { color: ${VIZ.red}; }
+    .fit-card-hover { transition: transform .2s; }
+    .fit-card-hover:hover { transform: translateY(-2px); }
+    .fit-log-row { transition: background .12s; }
+    .fit-log-row:hover { background: hsl(var(--muted) / 0.5); }
+  `}</style>
+);
 
-  const chartData = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => ({
-    name: day,
-    val: activeTab === "calories" ? stats.calories[i] : activeTab === "water" ? stats.water[i] : stats.steps[i]
-  }));
-
-  const overallProgress = Math.round(
-    ((stats.water[6] / goals.water) + (stats.calories[6] / goals.calories) + (stats.steps[6] / goals.steps)) / 3 * 100
-  );
-
+const ChartTooltip = ({ active, payload, label, unit = "" }) => {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 md:p-8 transition-all duration-300">
-      
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/20">
-            <Heart className="text-primary-foreground w-7 h-7" fill="currentColor" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">HealthMate</h1>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Pro Analytics</p>
-          </div>
-        </div>
+    <div className="rounded-xl border bg-card px-3 py-2 shadow-md text-sm">
+      <p className="text-muted-foreground text-xs font-semibold mb-0.5">{label}</p>
+      <p className="font-bold text-foreground">{payload[0].value?.toLocaleString()} {unit}</p>
+    </div>
+  );
+};
 
-        <div className="flex items-center gap-4">
-          <GoalSettingsModal goals={goals} onSave={handleUpdate} val={newVal} setVal={setNewVal} />
-          <Separator orientation="vertical" className="h-8 hidden md:block" />
-          <div className="flex items-center gap-3 bg-card border p-1 pr-4 rounded-2xl shadow-sm">
-            <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center overflow-hidden">
-               <User className="text-muted-foreground" />
-            </div>
-            <span className="text-sm font-bold">Lina Blake</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Main Section */}
-        <div className="lg:col-span-8 space-y-8">
-          
-          {/* Quick Log Row */}
-          <div className="flex flex-wrap gap-3 items-center">
-            <h3 className="text-sm font-bold mr-2 uppercase text-muted-foreground tracking-tighter">Quick Log:</h3>
-            <DataModal title="Water" icon={<GlassWater/>} unit="L" onSave={() => handleUpdate('water')} val={newVal} setVal={setNewVal} />
-            <DataModal title="Steps" icon={<Footprints/>} unit="Steps" onSave={() => handleUpdate('steps')} val={newVal} setVal={setNewVal} />
-            <DataModal title="Calories" icon={<Utensils/>} unit="kcal" onSave={() => handleUpdate('calories')} val={newVal} setVal={setNewVal} />
-            <DataModal title="Sleep" icon={<Bed/>} unit="Hours" onSave={() => handleUpdate('sleep')} val={newVal} setVal={setNewVal} />
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <MetricCard icon={<Droplets/>} label="Hydration" value={`${stats.water[6]}L`} target={goals.water} color="text-blue-500" unit="L" />
-            <MetricCard icon={<Flame/>} label="Burned" value={stats.calories[6]} target={goals.calories} color="text-orange-500" unit="kcal" />
-            <MetricCard icon={<Footprints/>} label="Walking" value={stats.steps[6]} target={goals.steps} color="text-emerald-500" unit="steps" />
-          </div>
-
-          {/* Performance Chart */}
-          <Card className="rounded-[2.5rem] border-border bg-card shadow-sm overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg">Activity Trends</CardTitle>
-              <Tabs defaultValue="calories" onValueChange={setActiveTab} className="bg-muted/50 rounded-lg p-1">
-                <TabsList className="bg-transparent h-8">
-                  <TabsTrigger value="calories" className="text-xs px-4">Calories</TabsTrigger>
-                  <TabsTrigger value="water" className="text-xs px-4">Water</TabsTrigger>
-                  <TabsTrigger value="steps" className="text-xs px-4">Steps</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardHeader>
-            <CardContent className="h-[300px] pt-6">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 11}} dy={10} />
-                  <Tooltip cursor={{fill: 'hsl(var(--muted)/0.3)'}} contentStyle={{borderRadius: '16px', background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                  <Bar dataKey="val" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Log Table */}
-          <Card className="rounded-[2.5rem] border-border bg-card overflow-hidden shadow-sm">
-            <CardHeader className="bg-muted/20 border-b">
-              <CardTitle className="text-sm font-bold flex items-center gap-2"><History size={16}/> Recent Activity</CardTitle>
-            </CardHeader>
-            <Table>
-              <TableBody>
-                {logs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-muted/30">
-                    <TableCell className="font-bold">{log.type}</TableCell>
-                    <TableCell className="text-muted-foreground">{log.amount}</TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground font-mono">{log.time}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-
-        {/* Right Section */}
-        <div className="lg:col-span-4 space-y-8">
-          <Card className="rounded-[2.5rem] border-border bg-card p-8 text-center shadow-sm border-t-4 border-t-primary">
-             <div className="relative inline-block mb-6">
-               <svg className="w-32 h-32 transform -rotate-90">
-                 <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-muted/30" />
-                 <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364} strokeDashoffset={364 - (364 * overallProgress) / 100} className="text-primary transition-all duration-1000" strokeLinecap="round" />
-               </svg>
-               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                 <span className="text-3xl font-black">{overallProgress}%</span>
-                 <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Daily Goal</span>
-               </div>
-             </div>
-             <h3 className="text-xl font-bold">Lina Blake</h3>
-             <div className="flex justify-center gap-4 mt-6">
-                <div className="text-center bg-muted/30 px-4 py-2 rounded-2xl">
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Sleep</p>
-                  <p className="font-bold">{stats.sleep}h</p>
-                </div>
-                <div className="text-center bg-muted/30 px-4 py-2 rounded-2xl">
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase">Weight</p>
-                  <p className="font-bold">60kg</p>
-                </div>
-             </div>
-          </Card>
-
-          <Card className="rounded-[2.5rem] border-border bg-card p-6 shadow-sm">
-            <h3 className="font-bold mb-4 flex items-center gap-2">How's your mood?</h3>
-            <div className="flex gap-2 bg-muted/30 p-2 rounded-2xl">
-              {['bad', 'ok', 'good'].map((m) => (
-                <Button key={m} variant={mood === m ? "default" : "ghost"} className="flex-1 rounded-xl h-12 capitalize" onClick={() => setMood(m)}>
-                  {m === 'bad' ? <Frown size={20}/> : m === 'ok' ? <Meh size={20}/> : <Smile size={20}/>}
-                </Button>
-              ))}
-            </div>
-          </Card>
-        </div>
+const Ring = ({ value, size = 120, stroke = 9, color, children }) => {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (circ * Math.min(value, 100)) / 100;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="fit-ring" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke="hsl(var(--muted))" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke={color} strokeWidth={stroke}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset .8s ease" }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+        {children}
       </div>
     </div>
   );
 };
 
-// --- Modals & Sub-components ---
+const MacroRow = ({ label, val, target, color, extra }) => (
+  <div>
+    <div className="flex justify-between text-xs mb-1">
+      <span className="font-semibold text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">
+        {extra && <span className="text-muted-foreground">{extra}</span>}
+        <span className="font-bold" style={{ color }}>{val}g <span className="text-muted-foreground font-normal">/ {target}g</span></span>
+      </div>
+    </div>
+    <div className="h-1.5 rounded-full overflow-hidden bg-muted">
+      <div className="h-full rounded-full transition-all duration-700"
+        style={{ width: `${pct(val, target)}%`, background: color }} />
+    </div>
+  </div>
+);
 
-const MetricCard = ({ icon, label, value, target, color, unit }) => {
-  const progress = Math.min((value / target) * 100, 100);
+const MetricTile = ({ icon, label, value, sub, pct: p, color }) => (
+  <Card className="fit-card-hover">
+    <CardContent className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ background: `${color}18`, color }}>
+          {icon}
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-wider"
+          style={{ color: p >= 100 ? VIZ.steps : "hsl(var(--muted-foreground))" }}>
+          {p}%
+        </span>
+      </div>
+      <p className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-2xl font-black leading-none mb-0.5" style={{ color }}>{value}</p>
+      <p className="text-xs text-muted-foreground mb-3">{sub}</p>
+      <div className="h-1.5 rounded-full overflow-hidden bg-muted">
+        <div className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${p}%`, background: color }} />
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const LogDialog = ({ type, onSave }) => {
+  const [val, setVal] = useState("");
+  const [note, setNote] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const submit = () => {
+    const n = parseFloat(val);
+    if (!val || isNaN(n)) return;
+    onSave(type, n, note);
+    setVal(""); setNote(""); setOpen(false);
+  };
+
+  const title = type.charAt(0).toUpperCase() + type.slice(1);
   return (
-    <Card className="rounded-[2rem] p-6 border-border bg-card shadow-sm hover:translate-y-[-4px] transition-all">
-      <div className={`w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center mb-4 ${color}`}>
-        {React.cloneElement(icon, { size: 20 })}
-      </div>
-      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
-      <div className="flex items-baseline gap-1 mt-1 mb-4">
-        <span className="text-2xl font-black">{value.toLocaleString()}</span>
-        <span className="text-xs text-muted-foreground">/ {target.toLocaleString()} {unit}</span>
-      </div>
-      <Progress value={progress} className="h-1.5 bg-muted" indicatorClassName={color.replace('text', 'bg')} />
-    </Card>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="rounded-full gap-1.5 capitalize text-xs">{title}</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-100">
+        <DialogHeader><DialogTitle>Log {title}</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">
+              Amount ({UNIT_LABEL[type] ?? ""})
+            </Label>
+            <Input type="number" placeholder="0.0" value={val}
+              onChange={(e) => setVal(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submit()} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">
+              Note (optional)
+            </Label>
+            <Input placeholder="e.g. Breakfast, Morning jog…"
+              value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter className="pt-2">
+          <Button className="w-full font-semibold" onClick={submit}>Record Entry</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-const DataModal = ({ title, icon, unit, onSave, val, setVal }) => (
-  <Dialog>
-    <DialogTrigger asChild>
-      <Button variant="outline" size="sm" className="rounded-full gap-2 border-border h-9 px-4 text-xs font-bold hover:bg-primary hover:text-white transition-all">
-        {icon} Log {title}
-      </Button>
-    </DialogTrigger>
-    <DialogContent className="rounded-[2rem] bg-card border-border sm:max-w-[400px]">
-      <DialogHeader><DialogTitle className="text-xl">Add {title} Entry</DialogTitle></DialogHeader>
-      <div className="space-y-4 py-4">
-        <div className="space-y-2">
-          <Label>Amount ({unit})</Label>
-          <Input type="number" value={val} onChange={(e)=>setVal(e.target.value)} className="rounded-xl" placeholder="0.00" />
+const GoalsDialog = ({ goals, onSave }) => {
+  const [inputs, setInputs] = useState({ ...goals });
+  const [open, setOpen] = useState(false);
+  const fields = [
+    { k: "water", label: "Water (L)" },
+    { k: "calories", label: "Calories (kcal)" },
+    { k: "steps", label: "Steps" },
+    { k: "sleep", label: "Sleep (h)" },
+    { k: "protein", label: "Protein (g)" },
+    { k: "carbs", label: "Carbs (g)" },
+    { k: "fat", label: "Fat (g)" },
+  ];
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <Target size={14} /> Goals
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-115">
+        <DialogHeader><DialogTitle>Configure Daily Goals</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          {fields.map(({ k, label }) => (
+            <div key={k} className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">{label}</Label>
+              <Input type="number" value={inputs[k]}
+                onChange={(e) => setInputs((g) => ({ ...g, [k]: parseFloat(e.target.value) || 0 }))} />
+            </div>
+          ))}
         </div>
-        <Button onClick={onSave} className="w-full rounded-xl py-6 text-lg font-bold">Record Entry</Button>
-      </div>
-    </DialogContent>
-  </Dialog>
-);
+        <DialogFooter className="pt-3">
+          <Button className="w-full font-semibold" onClick={() => { onSave(inputs); setOpen(false); }}>
+            Save Goals
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
-const GoalSettingsModal = ({ goals, onSave, val, setVal }) => (
-  <Dialog>
-    <DialogTrigger asChild>
-      <Button variant="ghost" size="sm" className="rounded-xl gap-2 font-bold text-primary">
-        <Target size={18}/> Set Goals
-      </Button>
-    </DialogTrigger>
-    <DialogContent className="rounded-[2.5rem] bg-card border-border sm:max-w-[450px]">
-      <DialogHeader><DialogTitle className="text-2xl font-black">Configure Daily Goals</DialogTitle></DialogHeader>
-      <div className="grid grid-cols-2 gap-4 py-6">
-        {Object.entries(goals).map(([key, value]) => (
-          <div key={key} className="space-y-2 p-4 bg-muted/20 rounded-2xl border">
-            <Label className="capitalize font-bold text-xs">{key}</Label>
-            <Input 
-              type="number" 
-              defaultValue={value} 
-              onBlur={(e) => {setVal(e.target.value); onSave(key, true)}} 
-              className="bg-card border-none text-lg font-black h-8 px-0"
-            />
+const BmiDialog = ({ bmi, onSave }) => {
+  const [inputs, setInputs] = useState({ ...bmi });
+  const [open, setOpen] = useState(false);
+  const calcBmi = inputs.height > 0 ? +(inputs.weight / ((inputs.height / 100) ** 2)).toFixed(1) : null;
+  const bmiLabel = !calcBmi ? "" : calcBmi < 18.5 ? "Underweight" : calcBmi < 25 ? "Normal" : calcBmi < 30 ? "Overweight" : "Obese";
+  const bmiColor = !calcBmi ? VIZ.steps : calcBmi < 18.5 ? VIZ.water : calcBmi < 25 ? VIZ.steps : calcBmi < 30 ? "#f59e0b" : VIZ.red;
+  const needle = calcBmi ? Math.min(((calcBmi - 15) / 25) * 100, 100) : 0;
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <Scale size={14} /> BMI
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-95">
+        <DialogHeader><DialogTitle>BMI Calculator</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Height (cm)</Label>
+            <Input type="number" value={inputs.height}
+              onChange={(e) => setInputs((b) => ({ ...b, height: parseFloat(e.target.value) || 0 }))} />
           </div>
-        ))}
-      </div>
-      <p className="text-[10px] text-center text-muted-foreground uppercase font-bold">Changes auto-save on blur</p>
-    </DialogContent>
-  </Dialog>
-);
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Weight (kg)</Label>
+            <Input type="number" value={inputs.weight}
+              onChange={(e) => setInputs((b) => ({ ...b, weight: parseFloat(e.target.value) || 0 }))} />
+          </div>
+          {calcBmi && (
+            <div className="rounded-xl bg-muted/50 p-4 text-center space-y-1 fit-pop">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Your BMI</p>
+              <p className="text-4xl font-black" style={{ color: bmiColor }}>{calcBmi}</p>
+              <p className="text-sm font-semibold" style={{ color: bmiColor }}>{bmiLabel}</p>
+              <div className="relative h-2.5 rounded-full overflow-hidden mt-2"
+                style={{ background: "linear-gradient(to right,#3b82f6,#10b981,#f59e0b,#f97316,#ef4444)" }}>
+                <div className="absolute top-1/2 w-0.5 h-4 bg-white rounded shadow"
+                  style={{ left: `${needle}%`, transform: "translateX(-50%) translateY(-50%)" }} />
+              </div>
+              <div className="flex justify-between mt-0.5">
+                {["16", "18.5", "25", "30", "40"].map((v) => (
+                  <span key={v} className="text-[10px] text-muted-foreground">{v}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter className="pt-2">
+          <Button className="w-full font-semibold"
+            onClick={() => { onSave(inputs); setOpen(false); }}>
+            Update Stats
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
-export default Home;
+export default function Home() {
+  const [chartTab, setChartTab] = useState("calories");
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [mood, setMood] = useState("good");
+  const [toast, setToast] = useState(null);
+
+  const [goals, setGoals] = useState({
+    water: 3, calories: 2500, steps: 10000, sleep: 8,
+    protein: 150, carbs: 280, fat: 80,
+  });
+
+  const [stats, setStats] = useState({
+    water: [2.1, 1.8, 2.4, 1.5, 0.8, 2.2, 1.4],
+    calories: [1800, 2100, 1600, 2400, 1900, 2200, 1250],
+    steps: [8000, 10000, 7500, 12000, 6000, 9500, 7420],
+    sleep: [7, 6.5, 8, 7.5, 6, 7, 6.5],
+    weight: [68.4, 68.1, 67.9, 68.2, 67.8, 67.5, 67.4],
+  });
+
+  const [macros, setMacros] = useState({ protein: 62, carbs: 140, fat: 38 });
+  const [waterGlasses, setWaterGlasses] = useState(5);
+  const [bmi, setBmi] = useState({ height: 168, weight: 67.4 });
+
+  const [workouts, setWorkouts] = useState([
+    { id: 1, name: "Morning Run", duration: 35, calories: 320, date: "Today" },
+    { id: 2, name: "Upper Body", duration: 50, calories: 280, date: "Yesterday" },
+  ]);
+
+  const [logs, setLogs] = useState([
+    { id: 1, type: "Water", amount: "500 ml", note: "", time: "09:30 AM" },
+    { id: 2, type: "Steps", amount: "2,400 steps", note: "Morning walk", time: "10:15 AM" },
+    { id: 3, type: "Calories", amount: "450 kcal", note: "Breakfast", time: "08:00 AM" },
+  ]);
+
+  const [streaks] = useState([1, 1, 1, 0, 1, 1, "today"]);
+
+  // ── derived ────────────────────────────────────────────────────────────────
+  const T = (key) => stats[key][6];
+
+  const overallPct = Math.round(
+    (pct(T("water"), goals.water) + pct(T("calories"), goals.calories) +
+      pct(T("steps"), goals.steps) + pct(T("sleep"), goals.sleep)) / 4
+  );
+
+  const bmiVal = +(bmi.weight / ((bmi.height / 100) ** 2)).toFixed(1);
+  const bmiLabel = bmiVal < 18.5 ? "Underweight" : bmiVal < 25 ? "Normal" : bmiVal < 30 ? "Overweight" : "Obese";
+  const bmiColor = bmiVal < 18.5 ? VIZ.water : bmiVal < 25 ? VIZ.steps : bmiVal < 30 ? "#f59e0b" : VIZ.red;
+  const bmiNeedle = Math.min(((bmiVal - 15) / 25) * 100, 100);
+
+  const caloriesLeft = Math.max(0, goals.calories - T("calories"));
+  const macroTotal = macros.protein * 4 + macros.carbs * 4 + macros.fat * 9;
+
+  const chartData = DAYS.map((name, i) => ({
+    name,
+    val: chartTab === "water" ? stats.water[i]
+      : chartTab === "steps" ? stats.steps[i]
+        : chartTab === "sleep" ? stats.sleep[i]
+          : stats.calories[i],
+  }));
+  const chartColor = { calories: VIZ.calories, water: VIZ.water, steps: VIZ.steps, sleep: VIZ.sleep }[chartTab];
+  const chartUnit = { calories: "kcal", water: "L", steps: "steps", sleep: "h" }[chartTab];
+
+  // ── actions ────────────────────────────────────────────────────────────────
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleLog = (type, val, note) => {
+    if (type === "workout") {
+      setWorkouts((prev) => [{
+        id: Date.now(), name: note || "Workout",
+        duration: Math.round(val), calories: Math.round(val * 6), date: "Today",
+      }, ...prev]);
+    } else {
+      setStats((prev) => {
+        if (type === "sleep") { const a = [...prev.sleep]; a[6] = val; return { ...prev, sleep: a }; }
+        if (type === "weight") { const a = [...prev.weight]; a[6] = val; setBmi((b) => ({ ...b, weight: val })); return { ...prev, weight: a }; }
+        const a = [...prev[type]]; a[6] += val; return { ...prev, [type]: a };
+      });
+      if (type === "water") setWaterGlasses((g) => Math.min(g + Math.round(val * 4), 8));
+      if (type === "calories") setMacros((prev) => ({
+        protein: prev.protein + Math.round(val * 0.25),
+        carbs: prev.carbs + Math.round(val * 0.45),
+        fat: prev.fat + Math.round(val * 0.30 / 9),
+      }));
+    }
+
+    const units = { water: "L", steps: "steps", calories: "kcal", sleep: "h", weight: "kg", workout: "min" };
+    setLogs((prev) => [{
+      id: Date.now(),
+      type: type.charAt(0).toUpperCase() + type.slice(1),
+      amount: `${val} ${units[type] ?? ""}`.trim(),
+      note,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    }, ...prev]);
+    showToast(`✓ ${type.charAt(0).toUpperCase() + type.slice(1)} logged!`);
+  };
+
+  const deleteLog = (id) => setLogs((prev) => prev.filter((l) => l.id !== id));
+
+  // ── render ─────────────────────────────────────────────────────────────────
+  return (
+    <>
+      <ScopedStyles />
+      {toast && (
+        <div className="fixed top-5 right-5 z-50 fit-pop bg-primary text-primary-foreground
+          text-sm font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
+          {toast}
+        </div>
+      )}
+
+      <div className="min-h-screen bg-background text-foreground p-4 md:p-6 space-y-6">
+        <header className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+              <Activity size={20} className="text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight leading-none">FitTrack</h1>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Health Analytics</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Tabs value={activeSection} onValueChange={setActiveSection}>
+              <TabsList>
+                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                <TabsTrigger value="workouts">Workouts</TabsTrigger>
+                <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <GoalsDialog goals={goals} onSave={setGoals} />
+            <BmiDialog bmi={bmi} onSave={(b) => { setBmi(b); setStats((prev) => { const a = [...prev.weight]; a[6] = b.weight; return { ...prev, weight: a }; }); showToast("Stats updated!"); }} />
+
+            <div className="flex items-center gap-2 border rounded-full pl-1 pr-3 py-1 bg-card">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-black text-primary-foreground">
+                L
+              </div>
+              <span className="text-sm font-semibold">Lina Blake</span>
+            </div>
+          </div>
+        </header>
+
+        {activeSection === "dashboard" && (
+          <div className="space-y-5">
+
+            {/* Quick log row */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground mr-1">
+                Quick Log:
+              </span>
+              {["water", "steps", "calories", "sleep", "weight"].map((type) => (
+                <LogDialog key={type} type={type} onSave={handleLog} />
+              ))}
+            </div>
+
+            {/* Metric tiles */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricTile icon={<Droplets size={17} />} label="Hydration" value={`${T("water")}L`} sub={`/ ${goals.water}L`} pct={pct(T("water"), goals.water)} color={VIZ.water} />
+              <MetricTile icon={<Flame size={17} />} label="Calories" value={T("calories").toLocaleString()} sub={`/ ${goals.calories.toLocaleString()} kcal`} pct={pct(T("calories"), goals.calories)} color={VIZ.calories} />
+              <MetricTile icon={<Footprints size={17} />} label="Steps" value={T("steps").toLocaleString()} sub={`/ ${goals.steps.toLocaleString()}`} pct={pct(T("steps"), goals.steps)} color={VIZ.steps} />
+              <MetricTile icon={<Moon size={17} />} label="Sleep" value={`${T("sleep")}h`} sub={`/ ${goals.sleep}h`} pct={pct(T("sleep"), goals.sleep)} color={VIZ.sleep} />
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_316px] gap-5">
+
+              <div className="space-y-5">
+
+                <Card>
+                  <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <BarChart2 size={15} /> Activity Trends
+                    </CardTitle>
+                    <Tabs value={chartTab} onValueChange={setChartTab}>
+                      <TabsList className="h-8">
+                        {["calories", "water", "steps", "sleep"].map((t) => (
+                          <TabsTrigger key={t} value={t} className="text-xs px-3 capitalize">{t}</TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                  </CardHeader>
+                  <CardContent className="h-56 pt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} barSize={26}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false}
+                          tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} dy={8} />
+                        <Tooltip content={<ChartTooltip unit={chartUnit} />}
+                          cursor={{ fill: "hsl(var(--muted))", radius: 6 }} />
+                        <Bar dataKey="val" fill={chartColor} radius={[5, 5, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingDown size={15} /> Weight Trend
+                    </CardTitle>
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      <TrendingDown size={10} style={{ color: VIZ.steps }} /> –1.0 kg this week
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="h-40 pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={DAYS.map((name, i) => ({ name, val: stats.weight[i] }))}>
+                        <defs>
+                          <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={VIZ.weight} stopOpacity={0.25} />
+                            <stop offset="95%" stopColor={VIZ.weight} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false}
+                          tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} dy={6} />
+                        <Tooltip content={<ChartTooltip unit="kg" />} />
+                        <Area type="monotone" dataKey="val" stroke={VIZ.weight} strokeWidth={2.5}
+                          fill="url(#wGrad)" dot={{ r: 3, fill: VIZ.weight, strokeWidth: 0 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-3 border-b">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <History size={14} /> Today's Log
+                      <span className="ml-auto text-xs text-muted-foreground font-normal">{logs.length} entries</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {logs.slice(0, 6).map((log) => (
+                      <div key={log.id} className="fit-log-row flex items-center gap-3 px-4 py-3 border-b last:border-0">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-black"
+                          style={{ background: `${TYPE_COLOR[log.type] ?? "#888"}18`, color: TYPE_COLOR[log.type] ?? "#888" }}>
+                          {log.type.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold leading-none">{log.type}</p>
+                          {log.note && <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.note}</p>}
+                        </div>
+                        <Badge variant="secondary" className="text-xs font-semibold shrink-0"
+                          style={{ background: `${TYPE_COLOR[log.type] ?? "#888"}14`, color: TYPE_COLOR[log.type] ?? "#888" }}>
+                          {log.amount}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground font-mono shrink-0">{log.time}</span>
+                        <button className="fit-del" onClick={() => deleteLog(log.id)} aria-label="Delete">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="space-y-5">
+                <Card>
+                  <CardContent className="pt-6 flex flex-col items-center gap-4">
+                    <Ring value={overallPct} size={136} stroke={11} color="hsl(var(--primary))">
+                      <p className="text-3xl font-black leading-none">{overallPct}%</p>
+                      <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Daily Goal</p>
+                    </Ring>
+                    <p className="font-bold text-base -mt-1">Lina Blake</p>
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                      {[
+                        { l: "Sleep", v: `${T("sleep")}h`, c: VIZ.sleep },
+                        { l: "Weight", v: `${stats.weight[6]}kg`, c: VIZ.steps },
+                        { l: "BMI", v: bmiVal, c: bmiColor },
+                        { l: "Kcal Left", v: caloriesLeft.toLocaleString(), c: VIZ.calories },
+                      ].map(({ l, v, c }) => (
+                        <div key={l} className="bg-muted/50 border rounded-xl p-2.5 text-center">
+                          <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground">{l}</p>
+                          <p className="font-black text-base leading-tight" style={{ color: c }}>{v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="flex items-center gap-2"><GlassWater size={14} /> Hydration</span>
+                      <span className="text-xs font-bold" style={{ color: VIZ.water }}>{waterGlasses}/8 glasses</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    <div className="flex gap-1.5 flex-wrap">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="fit-glass" onClick={() => setWaterGlasses(i + 1)}
+                          title={`${(i + 1) * 250}ml`}>
+                          <div className="fit-glass-fill" style={{ height: i < waterGlasses ? "80%" : "0%" }} />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Click a glass to update · 250 ml each</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="flex items-center gap-2"><Utensils size={14} /> Macros</span>
+                      <span className="text-xs text-muted-foreground">{macroTotal} kcal</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <MacroRow label="Protein" val={macros.protein} target={goals.protein} color={VIZ.protein} />
+                    <MacroRow label="Carbs" val={macros.carbs} target={goals.carbs} color={VIZ.carbs} />
+                    <MacroRow label="Fat" val={macros.fat} target={goals.fat} color={VIZ.fat} />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2"><Smile size={14} /> Today's Mood</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-1.5 bg-muted/50 p-1.5 rounded-xl">
+                      {[
+                        { k: "bad", icon: <Frown size={17} />, label: "Bad" },
+                        { k: "ok", icon: <Meh size={17} />, label: "Okay" },
+                        { k: "good", icon: <Smile size={17} />, label: "Good" },
+                      ].map((m) => (
+                        <Button key={m.k} variant={mood === m.k ? "default" : "ghost"}
+                          className="flex-1 rounded-lg h-11 flex-col gap-1 text-[10px] uppercase tracking-wider font-bold"
+                          onClick={() => setMood(m.k)}>
+                          {m.icon} {m.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="flex items-center gap-2"><Award size={14} /> Streak</span>
+                      <Badge variant="secondary" className="text-xs gap-1">
+                        <Flame size={10} style={{ color: VIZ.calories }} /> 6 days
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-1">
+                      {WEEKDAYS.map((d, i) => {
+                        const s = streaks[i];
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"
+                              style={
+                                s === "today" ? { background: VIZ.calories, color: "#fff", boxShadow: `0 0 0 3px ${VIZ.calories}30` }
+                                  : s ? { background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }
+                                    : { background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
+                              }>
+                              {s === "today" ? "★" : s ? "✓" : "·"}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground font-semibold">{d}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span className="flex items-center gap-2"><Scale size={14} /> BMI</span>
+                      <Badge variant="secondary" className="text-xs"
+                        style={{ background: `${bmiColor}18`, color: bmiColor }}>
+                        {bmiLabel}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-baseline gap-1.5 mb-3">
+                      <span className="text-3xl font-black" style={{ color: bmiColor }}>{bmiVal}</span>
+                      <span className="text-xs text-muted-foreground font-semibold">kg/m²</span>
+                    </div>
+                    <div className="relative h-2.5 rounded-full overflow-hidden"
+                      style={{ background: "linear-gradient(to right,#3b82f6,#10b981,#f59e0b,#f97316,#ef4444)" }}>
+                      <div className="absolute top-1/2 w-0.5 h-4 bg-white rounded shadow"
+                        style={{ left: `${bmiNeedle}%`, transform: "translateX(-50%) translateY(-50%)" }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      {["16", "18.5", "25", "30", "40"].map((v) => (
+                        <span key={v} className="text-[10px] text-muted-foreground">{v}</span>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "workouts" && (
+          <div className="max-w-3xl space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black">Workouts</h2>
+              <LogDialog type="workout" onSave={handleLog} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { label: "This Week", val: `${workouts.filter(w => w.date === "Today").length + 2} sessions`, icon: <Dumbbell size={18} />, color: VIZ.calories },
+                { label: "Calories Burned", val: `${workouts.reduce((s, w) => s + w.calories, 0).toLocaleString()} kcal`, icon: <Flame size={18} />, color: VIZ.red },
+                { label: "Active Minutes", val: `${workouts.reduce((s, w) => s + w.duration, 0)} min`, icon: <Zap size={18} />, color: VIZ.steps },
+              ].map(({ label, val, icon, color }) => (
+                <Card key={label} className="fit-card-hover">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-2" style={{ color }}>
+                      {icon}
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+                    </div>
+                    <p className="text-2xl font-black" style={{ color }}>{val}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Card>
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="text-sm flex items-center gap-2"><Dumbbell size={14} /> Recent Workouts</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {workouts.map((w) => (
+                  <div key={w.id} className="fit-log-row flex items-center gap-3 px-4 py-3 border-b last:border-0">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{ background: `${VIZ.red}18` }}>
+                      <Dumbbell size={16} style={{ color: VIZ.red }} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">{w.name}</p>
+                      <p className="text-xs text-muted-foreground">{w.date}</p>
+                    </div>
+                    <Badge variant="secondary" style={{ background: `${VIZ.red}14`, color: VIZ.red }}>{w.duration} min</Badge>
+                    <Badge variant="secondary" style={{ background: `${VIZ.calories}14`, color: VIZ.calories }}>{w.calories} kcal</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        {activeSection === "nutrition" && (
+          <div className="max-w-3xl space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black">Nutrition</h2>
+              <LogDialog type="calories" onSave={handleLog} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2"><Flame size={14} /> Calories</CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center gap-5">
+                  <Ring value={pct(T("calories"), goals.calories)} size={108} stroke={10} color={VIZ.calories}>
+                    <p className="text-xl font-black leading-none" style={{ color: VIZ.calories }}>{T("calories")}</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold">kcal</p>
+                  </Ring>
+                  <div className="space-y-2">
+                    {[
+                      { label: "Goal", val: goals.calories, color: undefined },
+                      { label: "Consumed", val: T("calories"), color: VIZ.calories },
+                      { label: "Remaining", val: caloriesLeft, color: VIZ.steps },
+                    ].map(({ label, val, color }) => (
+                      <div key={label}>
+                        <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground">{label}</p>
+                        <p className="text-lg font-black leading-none" style={{ color }}>{val.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2"><Zap size={14} /> Macronutrients</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <MacroRow label="Protein" val={macros.protein} target={goals.protein} color={VIZ.protein} extra={`${macros.protein * 4} kcal`} />
+                  <MacroRow label="Carbs" val={macros.carbs} target={goals.carbs} color={VIZ.carbs} extra={`${macros.carbs * 4} kcal`} />
+                  <MacroRow label="Fat" val={macros.fat} target={goals.fat} color={VIZ.fat} extra={`${macros.fat * 9} kcal`} />
+                </CardContent>
+              </Card>
+            </div>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp size={14} /> Calorie History (7 days)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-52 pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={DAYS.map((name, i) => ({ name, consumed: stats.calories[i], goal: goals.calories }))}
+                    barSize={22}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false}
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} dy={8} />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "12px",
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar dataKey="consumed" fill={VIZ.calories} radius={[5, 5, 0, 0]} name="Consumed" />
+                    <Bar dataKey="goal" fill="hsl(var(--border))" radius={[5, 5, 0, 0]} name="Goal" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

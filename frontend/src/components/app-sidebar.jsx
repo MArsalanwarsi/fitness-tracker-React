@@ -64,9 +64,26 @@ const data = {
           title: "View Excersise",
           url: "Excersise/viewExcersise",
         },
-         {
+        {
           title: "View Categories",
           url: "Excersise/viewCategories",
+        },
+      ],
+    },
+    {
+      platform: "Main",
+      title: "Nutritions",
+      url: "Nutritions",
+      icon: PieChart,
+      isActive: false,
+      items: [
+        {
+          title: "Nutritions",
+          url: "Nutritions/Nutritions",
+        },
+        {
+          title: "Recipes",
+          url: "Nutritions/Recipes",
         },
       ],
     },

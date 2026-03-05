@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, PlusCircle, Tag } from "lucide-react";
 import { useDispatch } from 'react-redux';
 import { addCategory } from '../../redux/slice/categorySlice';
 import { toast } from 'react-toastify';
@@ -18,67 +19,68 @@ const AddCategory = () => {
     if (!categoryName.trim()) return;
 
     setIsLoading(true);
-
-   const result= await dispatch(addCategory(categoryName))
-    if(addCategory.fulfilled.match(result)){
+    const result = await dispatch(addCategory(categoryName));
+    if (addCategory.fulfilled.match(result)) {
       toast.success("Category Added Successfully");
-      setIsLoading(false);
       setCategoryName('');
     } else {
       toast.error(result.payload || "Failed to add category");
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold tracking-tight">Create Category</CardTitle>
+    <div className="bg-background py-6 px-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <Tag size={14} />
+            <span className="text-xs font-semibold uppercase tracking-widest">Categories</span>
+          </div>
+          <CardTitle className="text-2xl font-black tracking-tight">Add Category</CardTitle>
           <CardDescription>
-            Add a new category to organize your products or content.
+            Add a new category to organize your exercises and content.
           </CardDescription>
         </CardHeader>
-        
+
+        <Separator />
+
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Category Name
+          <CardContent className="pt-5 space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Category Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
-                placeholder="e.g. Electronics, Home & Garden"
+                placeholder="e.g. Strength, Cardio, Mobility…"
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
                 required
-                className="focus-visible:ring-2"
               />
             </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <Button
+                type="submit"
+                className="gap-2"
+                disabled={isLoading || !categoryName.trim()}
+              >
+                {isLoading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
+                ) : (
+                  <><PlusCircle className="h-4 w-4" /> Add Category</>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => setCategoryName('')}
+              >
+                Clear
+              </Button>
+            </div>
           </CardContent>
-          
-          <CardFooter className="flex flex-col gap-3 mt-2">
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading || !categoryName.trim()}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Category
-                </>
-              )}
-            </Button>
-            <Button variant="ghost" type="button" className="w-full text-slate-500">
-              Cancel
-            </Button>
-          </CardFooter>
         </form>
       </Card>
     </div>
