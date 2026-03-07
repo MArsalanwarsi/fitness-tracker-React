@@ -5,6 +5,8 @@ import "dotenv/config"
 import Database from "./src/config/dbConnection.js";
 import excersiseRouter from "./src/routers/Excersise.js";
 import categoryRouter from "./src/routers/Category.js";
+import Nutritions from "./src/routers/Nutritions.js";
+import Dashboard from "./src/routers/Dashboard.js";
 
 const app =express();
 const port = process.env.PORT || 1000;
@@ -13,7 +15,9 @@ app.use(express.json());
 
 app.use('/auth', authRouter);
 app.use('/exercise', excersiseRouter);
-app.use('/category',categoryRouter)
+app.use('/category', categoryRouter)
+app.use("/nutrition", Nutritions);
+app.use("/dashboard", Dashboard);
 
 Database();
 

@@ -1,9 +1,43 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchDashboard,
+  updateGoals,
+  updateMood,
+  updateBmi,
+  updateWaterGlasses,
+  logActivity,
+  deleteActivityLog,
+  deleteWorkout,
+  clearDashboardError,
+  setWaterGlassesLocal,
+  setMoodLocal,
+  selectDashboardLoading,
+  selectDashboardError,
+  selectUserName,
+  selectGoals,
+  selectWeeklyStats,
+  selectMacros,
+  selectBmi,
+  selectWaterGlasses,
+  selectMood,
+  selectStreak,
+  selectActivityLogs,
+  selectWorkouts,
+  selectTodayStats,
+  selectBmiValue,
+  selectOverallPct,
+  selectCaloriesLeft,
+  selectWeightDelta,
+  selectTotalWorkoutCalories,
+  selectTotalWorkoutMinutes,
+} from "../../redux/slice/dashboardSlice";
+import { fetchUserExcersises } from "../../redux/slice/excersiseSlice";
 import {
   Flame, Footprints, Droplets, Moon, Target, Trash2,
-  History, Smile, Frown, Meh, GlassWater, Bed, Utensils,
-  TrendingUp, TrendingDown, Dumbbell, Scale, Plus,
-  Activity, Zap, Award, BarChart2,
+  History, Smile, Frown, Meh, GlassWater, Utensils,
+  TrendingUp, TrendingDown, Dumbbell, Scale,
+  Activity, Zap, Award, BarChart2, Loader2, Search, ChevronDown, Check,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,28 +53,24 @@ import {
   BarChart, Bar, XAxis, ResponsiveContainer, Tooltip,
   CartesianGrid, AreaChart, Area,
 } from "recharts";
-const VIZ = {
-  water: "#3b82f6",
-  calories: "#f97316",
-  steps: "#10b981",
-  sleep: "#8b5cf6",
-  weight: "#10b981",
-  protein: "#f97316",
-  carbs: "#3b82f6",
-  fat: "#8b5cf6",
-  red: "#ef4444",
-};
+import { toast } from "react-toastify";
 
+// ── constants ─────────────────────────────────────────────────────────────────
+const VIZ = {
+  water: "#3b82f6", calories: "#f97316", steps: "#10b981",
+  sleep: "#8b5cf6", weight: "#10b981", protein: "#f97316",
+  carbs: "#3b82f6", fat: "#8b5cf6", red: "#ef4444",
+};
 const TYPE_COLOR = {
   Water: VIZ.water, Steps: VIZ.steps, Calories: VIZ.calories,
   Sleep: VIZ.sleep, Workout: VIZ.red, Weight: VIZ.weight,
 };
-
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const UNIT_LABEL = { water: "Litres", calories: "kcal", steps: "steps", sleep: "hours", weight: "kg" };
-
 const pct = (v, t) => Math.min(Math.round((v / t) * 100), 100);
+
+// ── scoped styles ─────────────────────────────────────────────────────────────
 const ScopedStyles = () => (
   <style>{`
     @keyframes ring-draw { from { stroke-dashoffset: 502; } }
@@ -48,24 +78,22 @@ const ScopedStyles = () => (
     @keyframes fit-pop { from { opacity:0; transform:scale(.95) translateY(5px); } }
     .fit-pop { animation: fit-pop .18s ease; }
     .fit-glass {
-      width: 2rem; height: 2.5rem;
-      border: 2px solid ${VIZ.water};
-      border-radius: .25rem .25rem .5rem .5rem;
-      display: flex; align-items: flex-end;
-      overflow: hidden; cursor: pointer;
-      transition: transform .15s;
+      width:2rem; height:2.5rem;
+      border:2px solid ${VIZ.water}; border-radius:.25rem .25rem .5rem .5rem;
+      display:flex; align-items:flex-end; overflow:hidden; cursor:pointer; transition:transform .15s;
     }
-    .fit-glass:hover { transform: scale(1.1); }
-    .fit-glass-fill { width: 100%; transition: height .3s; background: ${VIZ.water}; opacity: .8; }
-    .fit-del { color: hsl(var(--muted-foreground)); transition: color .15s; background: none; border: none; cursor: pointer; padding: .2rem; border-radius: .35rem; display:flex; align-items:center; }
-    .fit-del:hover { color: ${VIZ.red}; }
-    .fit-card-hover { transition: transform .2s; }
-    .fit-card-hover:hover { transform: translateY(-2px); }
-    .fit-log-row { transition: background .12s; }
-    .fit-log-row:hover { background: hsl(var(--muted) / 0.5); }
+    .fit-glass:hover { transform:scale(1.1); }
+    .fit-glass-fill { width:100%; transition:height .3s; background:${VIZ.water}; opacity:.8; }
+    .fit-del { color:hsl(var(--muted-foreground)); transition:color .15s; background:none; border:none; cursor:pointer; padding:.2rem; border-radius:.35rem; display:flex; align-items:center; }
+    .fit-del:hover { color:${VIZ.red}; }
+    .fit-card-hover { transition:transform .2s; }
+    .fit-card-hover:hover { transform:translateY(-2px); }
+    .fit-log-row { transition:background .12s; }
+    .fit-log-row:hover { background:hsl(var(--muted)/0.5); }
   `}</style>
 );
 
+// ── shared components ─────────────────────────────────────────────────────────
 const ChartTooltip = ({ active, payload, label, unit = "" }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -77,22 +105,17 @@ const ChartTooltip = ({ active, payload, label, unit = "" }) => {
 };
 
 const Ring = ({ value, size = 120, stroke = 9, color, children }) => {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (circ * Math.min(value, 100)) / 100;
+  const r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+  const off = circ - (circ * Math.min(value, 100)) / 100;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="fit-ring" style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="hsl(var(--muted))" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={color} strokeWidth={stroke}
-          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round"
           style={{ transition: "stroke-dashoffset .8s ease" }} />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-        {children}
-      </div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">{children}</div>
     </div>
   );
 };
@@ -103,7 +126,9 @@ const MacroRow = ({ label, val, target, color, extra }) => (
       <span className="font-semibold text-muted-foreground">{label}</span>
       <div className="flex items-center gap-2">
         {extra && <span className="text-muted-foreground">{extra}</span>}
-        <span className="font-bold" style={{ color }}>{val}g <span className="text-muted-foreground font-normal">/ {target}g</span></span>
+        <span className="font-bold" style={{ color }}>
+          {val}g <span className="text-muted-foreground font-normal">/ {target}g</span>
+        </span>
       </div>
     </div>
     <div className="h-1.5 rounded-full overflow-hidden bg-muted">
@@ -117,74 +142,228 @@ const MetricTile = ({ icon, label, value, sub, pct: p, color }) => (
   <Card className="fit-card-hover">
     <CardContent className="p-5">
       <div className="flex items-center justify-between mb-3">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: `${color}18`, color }}>
-          {icon}
-        </div>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}18`, color }}>{icon}</div>
         <span className="text-[11px] font-bold uppercase tracking-wider"
-          style={{ color: p >= 100 ? VIZ.steps : "hsl(var(--muted-foreground))" }}>
-          {p}%
-        </span>
+          style={{ color: p >= 100 ? VIZ.steps : "hsl(var(--muted-foreground))" }}>{p}%</span>
       </div>
       <p className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground mb-0.5">{label}</p>
       <p className="text-2xl font-black leading-none mb-0.5" style={{ color }}>{value}</p>
       <p className="text-xs text-muted-foreground mb-3">{sub}</p>
       <div className="h-1.5 rounded-full overflow-hidden bg-muted">
-        <div className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${p}%`, background: color }} />
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${p}%`, background: color }} />
       </div>
     </CardContent>
   </Card>
 );
 
-const LogDialog = ({ type, onSave }) => {
-  const [val, setVal] = useState("");
-  const [note, setNote] = useState("");
-  const [open, setOpen] = useState(false);
+// ── dialogs ───────────────────────────────────────────────────────────────────
+// ── WorkoutLogDialog — picks from saved exercises ────────────────────────────
+const WorkoutLogDialog = ({ onSave, loading }) => {
+  const dispatch = useDispatch();
+  const exercises = useSelector((state) => state.excersise?.exercises ?? state.excersise?.userExercises ?? []);
+  const exLoading = useSelector((state) => state.excersise?.loading ?? false);
 
-  const submit = () => {
-    const n = parseFloat(val);
-    if (!val || isNaN(n)) return;
-    onSave(type, n, note);
-    setVal(""); setNote(""); setOpen(false);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null); // chosen exercise object
+  const [duration, setDuration] = useState("");   // minutes
+  const [calories, setCalories] = useState("");   // override kcal (optional)
+
+  // Fetch exercises when dialog opens
+  useEffect(() => {
+    if (open) dispatch(fetchUserExcersises());
+  }, [open, dispatch]);
+
+  const filtered = exercises.filter((ex) =>
+    ex.name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleSelect = (ex) => {
+    setSelected(ex);
+    setSearch(ex.name);
+    // Auto-estimate calories: MET ~6 * weight ~70kg * hours
+    if (duration) setCalories(String(Math.round(parseFloat(duration) * 6)));
   };
 
-  const title = type.charAt(0).toUpperCase() + type.slice(1);
+  const handleDurationChange = (val) => {
+    setDuration(val);
+    // Auto-recalculate calories whenever duration changes
+    if (selected && val) setCalories(String(Math.round(parseFloat(val) * 6)));
+  };
+
+  const submit = () => {
+    const dur = parseFloat(duration);
+    if (!selected || !dur || isNaN(dur)) return;
+    // Pass as workout type — controller creates the workout entry
+    const cal = parseFloat(calories) || Math.round(dur * 6);
+    onSave("workout", dur, selected.name, cal);
+    // Reset
+    setSelected(null); setSearch(""); setDuration(""); setCalories(""); setOpen(false);
+  };
+
+  const showDropdown = open && search.length > 0 && !selected;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setSelected(null); setSearch(""); setDuration(""); setCalories(""); } }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="rounded-full gap-1.5 capitalize text-xs">{title}</Button>
+        <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-xs">Workout</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-100">
-        <DialogHeader><DialogTitle>Log {title}</DialogTitle></DialogHeader>
-        <div className="space-y-3 pt-1">
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Dumbbell size={16} /> Log Workout</DialogTitle></DialogHeader>
+
+        <div className="space-y-4 pt-1">
+
+          {/* Exercise search */}
           <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">
-              Amount ({UNIT_LABEL[type] ?? ""})
-            </Label>
-            <Input type="number" placeholder="0.0" value={val}
-              onChange={(e) => setVal(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submit()} />
+            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Exercise</Label>
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-2.5 text-muted-foreground" />
+              <Input
+                className="pl-8 pr-8"
+                placeholder="Search your exercises…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setSelected(null); }}
+              />
+              {exLoading && <Loader2 size={13} className="absolute right-2.5 top-2.5 animate-spin text-muted-foreground" />}
+              {selected && <Check size={13} className="absolute right-2.5 top-2.5 text-green-500" />}
+            </div>
+
+            {/* Dropdown results */}
+            {showDropdown && (
+              <div className="rounded-xl border shadow-md overflow-hidden max-h-48 overflow-y-auto bg-card z-50 relative">
+                {filtered.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No exercises found</p>
+                )}
+                {filtered.map((ex) => (
+                  <button key={ex._id}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60 transition-colors border-b last:border-0"
+                    onClick={() => handleSelect(ex)}>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: `${VIZ.red}18` }}>
+                      <Dumbbell size={12} style={{ color: VIZ.red }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{ex.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {ex.category?.name ?? ex.category ?? "—"} · {ex.difficulty ?? ""}
+                      </p>
+                    </div>
+                    {ex.tags?.slice(0, 2).map((t) => (
+                      <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">{t}</Badge>
+                    ))}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Selected exercise pill */}
+            {selected && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-muted/40">
+                <Dumbbell size={13} style={{ color: VIZ.red }} />
+                <span className="text-sm font-semibold flex-1">{selected.name}</span>
+                {selected.difficulty && (
+                  <Badge variant="secondary" className="text-[10px]">{selected.difficulty}</Badge>
+                )}
+                <button className="fit-del" onClick={() => { setSelected(null); setSearch(""); }}>
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            )}
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">
-              Note (optional)
-            </Label>
-            <Input placeholder="e.g. Breakfast, Morning jog…"
-              value={note} onChange={(e) => setNote(e.target.value)} />
+
+          {/* Duration + Calories */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Duration (min)</Label>
+              <Input type="number" min="1" placeholder="30"
+                value={duration} onChange={(e) => handleDurationChange(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Calories (kcal)</Label>
+              <Input type="number" min="0" placeholder="Auto"
+                value={calories} onChange={(e) => setCalories(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground">Auto-estimated if blank</p>
+            </div>
           </div>
+
+          {/* Summary preview */}
+          {selected && duration && (
+            <div className="rounded-xl bg-muted/40 border px-3 py-2.5 flex items-center gap-4">
+              <div className="text-center">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Exercise</p>
+                <p className="text-xs font-black truncate max-w-[100px]">{selected.name}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Duration</p>
+                <p className="text-sm font-black" style={{ color: VIZ.steps }}>{duration} min</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Calories</p>
+                <p className="text-sm font-black" style={{ color: VIZ.calories }}>{calories || Math.round(parseFloat(duration) * 6)} kcal</p>
+              </div>
+            </div>
+          )}
         </div>
+
         <DialogFooter className="pt-2">
-          <Button className="w-full font-semibold" onClick={submit}>Record Entry</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button className="gap-1.5 font-semibold" onClick={submit}
+            disabled={loading || !selected || !duration}>
+            {loading && <Loader2 size={14} className="animate-spin" />}
+            Log Workout
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
-const GoalsDialog = ({ goals, onSave }) => {
+// ── Generic LogDialog (water / steps / calories / sleep / weight) ─────────────
+const LogDialog = ({ type, onSave, loading }) => {
+  const [val, setVal] = useState("");
+  const [note, setNote] = useState("");
+  const [open, setOpen] = useState(false);
+  const submit = () => {
+    const n = parseFloat(val);
+    if (!val || isNaN(n)) return;
+    onSave(type, n, note); setVal(""); setNote(""); setOpen(false);
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="rounded-full gap-1.5 capitalize text-xs">
+          {type.charAt(0).toUpperCase() + type.slice(1)}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-100">
+        <DialogHeader><DialogTitle>Log {type.charAt(0).toUpperCase() + type.slice(1)}</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-1">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">
+              Amount ({UNIT_LABEL[type] ?? "min"})
+            </Label>
+            <Input type="number" placeholder="0.0" value={val}
+              onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">Note (optional)</Label>
+            <Input placeholder="e.g. Breakfast, Morning jog…" value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter className="pt-2">
+          <Button className="w-full font-semibold" onClick={submit} disabled={loading}>
+            {loading && <Loader2 size={14} className="animate-spin mr-1" />} Record Entry
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const GoalsDialog = ({ goals, onSave, loading }) => {
   const [inputs, setInputs] = useState({ ...goals });
   const [open, setOpen] = useState(false);
+  useEffect(() => { setInputs({ ...goals }); }, [goals]);
   const fields = [
     { k: "water", label: "Water (L)" },
     { k: "calories", label: "Calories (kcal)" },
@@ -197,9 +376,7 @@ const GoalsDialog = ({ goals, onSave }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Target size={14} /> Goals
-        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5"><Target size={14} /> Goals</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-115">
         <DialogHeader><DialogTitle>Configure Daily Goals</DialogTitle></DialogHeader>
@@ -213,8 +390,9 @@ const GoalsDialog = ({ goals, onSave }) => {
           ))}
         </div>
         <DialogFooter className="pt-3">
-          <Button className="w-full font-semibold" onClick={() => { onSave(inputs); setOpen(false); }}>
-            Save Goals
+          <Button className="w-full font-semibold" disabled={loading}
+            onClick={() => { onSave(inputs); setOpen(false); }}>
+            {loading && <Loader2 size={14} className="animate-spin mr-1" />} Save Goals
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -222,19 +400,18 @@ const GoalsDialog = ({ goals, onSave }) => {
   );
 };
 
-const BmiDialog = ({ bmi, onSave }) => {
+const BmiDialog = ({ bmi, onSave, loading }) => {
   const [inputs, setInputs] = useState({ ...bmi });
   const [open, setOpen] = useState(false);
-  const calcBmi = inputs.height > 0 ? +(inputs.weight / ((inputs.height / 100) ** 2)).toFixed(1) : null;
-  const bmiLabel = !calcBmi ? "" : calcBmi < 18.5 ? "Underweight" : calcBmi < 25 ? "Normal" : calcBmi < 30 ? "Overweight" : "Obese";
-  const bmiColor = !calcBmi ? VIZ.steps : calcBmi < 18.5 ? VIZ.water : calcBmi < 25 ? VIZ.steps : calcBmi < 30 ? "#f59e0b" : VIZ.red;
-  const needle = calcBmi ? Math.min(((calcBmi - 15) / 25) * 100, 100) : 0;
+  useEffect(() => { setInputs({ ...bmi }); }, [bmi]);
+  const calc = inputs.height > 0 ? +(inputs.weight / ((inputs.height / 100) ** 2)).toFixed(1) : null;
+  const lbl = !calc ? "" : calc < 18.5 ? "Underweight" : calc < 25 ? "Normal" : calc < 30 ? "Overweight" : "Obese";
+  const col = !calc ? VIZ.steps : calc < 18.5 ? VIZ.water : calc < 25 ? VIZ.steps : calc < 30 ? "#f59e0b" : VIZ.red;
+  const needle = calc ? Math.min(((calc - 15) / 25) * 100, 100) : 0;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Scale size={14} /> BMI
-        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5"><Scale size={14} /> BMI</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-95">
         <DialogHeader><DialogTitle>BMI Calculator</DialogTitle></DialogHeader>
@@ -249,11 +426,11 @@ const BmiDialog = ({ bmi, onSave }) => {
             <Input type="number" value={inputs.weight}
               onChange={(e) => setInputs((b) => ({ ...b, weight: parseFloat(e.target.value) || 0 }))} />
           </div>
-          {calcBmi && (
+          {calc && (
             <div className="rounded-xl bg-muted/50 p-4 text-center space-y-1 fit-pop">
               <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Your BMI</p>
-              <p className="text-4xl font-black" style={{ color: bmiColor }}>{calcBmi}</p>
-              <p className="text-sm font-semibold" style={{ color: bmiColor }}>{bmiLabel}</p>
+              <p className="text-4xl font-black" style={{ color: col }}>{calc}</p>
+              <p className="text-sm font-semibold" style={{ color: col }}>{lbl}</p>
               <div className="relative h-2.5 rounded-full overflow-hidden mt-2"
                 style={{ background: "linear-gradient(to right,#3b82f6,#10b981,#f59e0b,#f97316,#ef4444)" }}>
                 <div className="absolute top-1/2 w-0.5 h-4 bg-white rounded shadow"
@@ -268,9 +445,9 @@ const BmiDialog = ({ bmi, onSave }) => {
           )}
         </div>
         <DialogFooter className="pt-2">
-          <Button className="w-full font-semibold"
+          <Button className="w-full font-semibold" disabled={loading}
             onClick={() => { onSave(inputs); setOpen(false); }}>
-            Update Stats
+            {loading && <Loader2 size={14} className="animate-spin mr-1" />} Update Stats
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -278,119 +455,88 @@ const BmiDialog = ({ bmi, onSave }) => {
   );
 };
 
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
 export default function Home() {
+  const dispatch = useDispatch();
+
+  const loading = useSelector(selectDashboardLoading);
+  const error = useSelector(selectDashboardError);
+  const name = useSelector(selectUserName);
+  const goals = useSelector(selectGoals);
+  const weeklyStats = useSelector(selectWeeklyStats);
+  const macros = useSelector(selectMacros);
+  const bmi = useSelector(selectBmi);
+  const waterGlasses = useSelector(selectWaterGlasses);
+  const mood = useSelector(selectMood);
+  const streak = useSelector(selectStreak);
+  const activityLogs = useSelector(selectActivityLogs);
+  const workouts = useSelector(selectWorkouts);
+  const today = useSelector(selectTodayStats);
+  const bmiVal = useSelector(selectBmiValue);
+  const overallPct = useSelector(selectOverallPct);
+  const caloriesLeft = useSelector(selectCaloriesLeft);
+  const weightDelta = useSelector(selectWeightDelta);
+  const totalWCal = useSelector(selectTotalWorkoutCalories);
+  const totalWMin = useSelector(selectTotalWorkoutMinutes);
+
   const [chartTab, setChartTab] = useState("calories");
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [mood, setMood] = useState("good");
-  const [toast, setToast] = useState(null);
 
-  const [goals, setGoals] = useState({
-    water: 3, calories: 2500, steps: 10000, sleep: 8,
-    protein: 150, carbs: 280, fat: 80,
-  });
+  useEffect(() => { dispatch(fetchDashboard()); }, [dispatch]);
+  useEffect(() => {
+    if (error) { toast.error(error); dispatch(clearDashboardError()); }
+  }, [error, dispatch]);
 
-  const [stats, setStats] = useState({
-    water: [2.1, 1.8, 2.4, 1.5, 0.8, 2.2, 1.4],
-    calories: [1800, 2100, 1600, 2400, 1900, 2200, 1250],
-    steps: [8000, 10000, 7500, 12000, 6000, 9500, 7420],
-    sleep: [7, 6.5, 8, 7.5, 6, 7, 6.5],
-    weight: [68.4, 68.1, 67.9, 68.2, 67.8, 67.5, 67.4],
-  });
-
-  const [macros, setMacros] = useState({ protein: 62, carbs: 140, fat: 38 });
-  const [waterGlasses, setWaterGlasses] = useState(5);
-  const [bmi, setBmi] = useState({ height: 168, weight: 67.4 });
-
-  const [workouts, setWorkouts] = useState([
-    { id: 1, name: "Morning Run", duration: 35, calories: 320, date: "Today" },
-    { id: 2, name: "Upper Body", duration: 50, calories: 280, date: "Yesterday" },
-  ]);
-
-  const [logs, setLogs] = useState([
-    { id: 1, type: "Water", amount: "500 ml", note: "", time: "09:30 AM" },
-    { id: 2, type: "Steps", amount: "2,400 steps", note: "Morning walk", time: "10:15 AM" },
-    { id: 3, type: "Calories", amount: "450 kcal", note: "Breakfast", time: "08:00 AM" },
-  ]);
-
-  const [streaks] = useState([1, 1, 1, 0, 1, 1, "today"]);
-
-  // ── derived ────────────────────────────────────────────────────────────────
-  const T = (key) => stats[key][6];
-
-  const overallPct = Math.round(
-    (pct(T("water"), goals.water) + pct(T("calories"), goals.calories) +
-      pct(T("steps"), goals.steps) + pct(T("sleep"), goals.sleep)) / 4
-  );
-
-  const bmiVal = +(bmi.weight / ((bmi.height / 100) ** 2)).toFixed(1);
-  const bmiLabel = bmiVal < 18.5 ? "Underweight" : bmiVal < 25 ? "Normal" : bmiVal < 30 ? "Overweight" : "Obese";
-  const bmiColor = bmiVal < 18.5 ? VIZ.water : bmiVal < 25 ? VIZ.steps : bmiVal < 30 ? "#f59e0b" : VIZ.red;
-  const bmiNeedle = Math.min(((bmiVal - 15) / 25) * 100, 100);
-
-  const caloriesLeft = Math.max(0, goals.calories - T("calories"));
+  // derived
+  const bmiLabel = !bmiVal ? "" : bmiVal < 18.5 ? "Underweight" : bmiVal < 25 ? "Normal" : bmiVal < 30 ? "Overweight" : "Obese";
+  const bmiColor = !bmiVal ? VIZ.steps : bmiVal < 18.5 ? VIZ.water : bmiVal < 25 ? VIZ.steps : bmiVal < 30 ? "#f59e0b" : VIZ.red;
+  const bmiNeedle = bmiVal ? Math.min(((bmiVal - 15) / 25) * 100, 100) : 0;
   const macroTotal = macros.protein * 4 + macros.carbs * 4 + macros.fat * 9;
+  const initials = name ? name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : "?";
 
-  const chartData = DAYS.map((name, i) => ({
-    name,
-    val: chartTab === "water" ? stats.water[i]
-      : chartTab === "steps" ? stats.steps[i]
-        : chartTab === "sleep" ? stats.sleep[i]
-          : stats.calories[i],
+  const chartData = DAYS.map((n, i) => ({
+    name: n,
+    val: chartTab === "water" ? weeklyStats.water[i]
+      : chartTab === "steps" ? weeklyStats.steps[i]
+        : chartTab === "sleep" ? weeklyStats.sleep[i]
+          : weeklyStats.calories[i],
   }));
   const chartColor = { calories: VIZ.calories, water: VIZ.water, steps: VIZ.steps, sleep: VIZ.sleep }[chartTab];
   const chartUnit = { calories: "kcal", water: "L", steps: "steps", sleep: "h" }[chartTab];
 
-  // ── actions ────────────────────────────────────────────────────────────────
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  };
+  // handlers
+  const handleLog = (type, value, note, caloriesOverride) =>
+    dispatch(logActivity({ type, value, note, caloriesOverride }))
+      .unwrap()
+      .then(() => toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} logged!`))
+      .catch(toast.error);
 
-  const handleLog = (type, val, note) => {
-    if (type === "workout") {
-      setWorkouts((prev) => [{
-        id: Date.now(), name: note || "Workout",
-        duration: Math.round(val), calories: Math.round(val * 6), date: "Today",
-      }, ...prev]);
-    } else {
-      setStats((prev) => {
-        if (type === "sleep") { const a = [...prev.sleep]; a[6] = val; return { ...prev, sleep: a }; }
-        if (type === "weight") { const a = [...prev.weight]; a[6] = val; setBmi((b) => ({ ...b, weight: val })); return { ...prev, weight: a }; }
-        const a = [...prev[type]]; a[6] += val; return { ...prev, [type]: a };
-      });
-      if (type === "water") setWaterGlasses((g) => Math.min(g + Math.round(val * 4), 8));
-      if (type === "calories") setMacros((prev) => ({
-        protein: prev.protein + Math.round(val * 0.25),
-        carbs: prev.carbs + Math.round(val * 0.45),
-        fat: prev.fat + Math.round(val * 0.30 / 9),
-      }));
-    }
+  const handleGoals = (g) => dispatch(updateGoals(g)).unwrap().then(() => toast.success("Goals saved!")).catch(toast.error);
+  const handleBmi = (b) => dispatch(updateBmi(b)).unwrap().then(() => toast.success("Stats updated!")).catch(toast.error);
+  const handleMood = (m) => { dispatch(setMoodLocal(m)); dispatch(updateMood(m)); };
+  const handleGlass = (i) => { dispatch(setWaterGlassesLocal(i + 1)); dispatch(updateWaterGlasses(i + 1)); };
+  const handleDelLog = (id) => dispatch(deleteActivityLog(id)).unwrap().then(() => toast.info("Entry removed")).catch(toast.error);
+  const handleDelWkt = (id) => dispatch(deleteWorkout(id)).unwrap().then(() => toast.info("Workout removed")).catch(toast.error);
 
-    const units = { water: "L", steps: "steps", calories: "kcal", sleep: "h", weight: "kg", workout: "min" };
-    setLogs((prev) => [{
-      id: Date.now(),
-      type: type.charAt(0).toUpperCase() + type.slice(1),
-      amount: `${val} ${units[type] ?? ""}`.trim(),
-      note,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    }, ...prev]);
-    showToast(`✓ ${type.charAt(0).toUpperCase() + type.slice(1)} logged!`);
-  };
+  if (loading && !name) {
+    return (
+      <div className="bg-background flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 size={32} className="animate-spin text-primary" />
+          <p className="text-sm font-semibold">Loading your dashboard…</p>
+        </div>
+      </div>
+    );
+  }
 
-  const deleteLog = (id) => setLogs((prev) => prev.filter((l) => l.id !== id));
-
-  // ── render ─────────────────────────────────────────────────────────────────
   return (
     <>
       <ScopedStyles />
-      {toast && (
-        <div className="fixed top-5 right-5 z-50 fit-pop bg-primary text-primary-foreground
-          text-sm font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
-          {toast}
-        </div>
-      )}
+      <div className="bg-background text-foreground p-4 md:p-6 space-y-6">
 
-      <div className="min-h-screen bg-background text-foreground p-4 md:p-6 space-y-6">
+        {/* Header */}
         <header className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-sm">
@@ -401,7 +547,6 @@ export default function Home() {
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Health Analytics</p>
             </div>
           </div>
-
           <div className="flex items-center gap-2 flex-wrap">
             <Tabs value={activeSection} onValueChange={setActiveSection}>
               <TabsList>
@@ -410,48 +555,44 @@ export default function Home() {
                 <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
               </TabsList>
             </Tabs>
-
-            <GoalsDialog goals={goals} onSave={setGoals} />
-            <BmiDialog bmi={bmi} onSave={(b) => { setBmi(b); setStats((prev) => { const a = [...prev.weight]; a[6] = b.weight; return { ...prev, weight: a }; }); showToast("Stats updated!"); }} />
-
+            <GoalsDialog goals={goals} onSave={handleGoals} loading={loading} />
+            <BmiDialog bmi={bmi} onSave={handleBmi} loading={loading} />
             <div className="flex items-center gap-2 border rounded-full pl-1 pr-3 py-1 bg-card">
               <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-black text-primary-foreground">
-                L
+                {initials}
               </div>
-              <span className="text-sm font-semibold">Lina Blake</span>
+              <span className="text-sm font-semibold">{name || "User"}</span>
             </div>
           </div>
         </header>
 
+        {/* ── Dashboard ── */}
         {activeSection === "dashboard" && (
           <div className="space-y-5">
-
-            {/* Quick log row */}
+            {/* Quick log */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground mr-1">
-                Quick Log:
-              </span>
-              {["water", "steps", "calories", "sleep", "weight"].map((type) => (
-                <LogDialog key={type} type={type} onSave={handleLog} />
+              <span className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground mr-1">Quick Log:</span>
+              {["water", "steps", "calories", "sleep", "weight"].map((t) => (
+                <LogDialog key={t} type={t} onSave={handleLog} loading={loading} />
               ))}
+              <WorkoutLogDialog onSave={handleLog} loading={loading} />
             </div>
 
             {/* Metric tiles */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <MetricTile icon={<Droplets size={17} />} label="Hydration" value={`${T("water")}L`} sub={`/ ${goals.water}L`} pct={pct(T("water"), goals.water)} color={VIZ.water} />
-              <MetricTile icon={<Flame size={17} />} label="Calories" value={T("calories").toLocaleString()} sub={`/ ${goals.calories.toLocaleString()} kcal`} pct={pct(T("calories"), goals.calories)} color={VIZ.calories} />
-              <MetricTile icon={<Footprints size={17} />} label="Steps" value={T("steps").toLocaleString()} sub={`/ ${goals.steps.toLocaleString()}`} pct={pct(T("steps"), goals.steps)} color={VIZ.steps} />
-              <MetricTile icon={<Moon size={17} />} label="Sleep" value={`${T("sleep")}h`} sub={`/ ${goals.sleep}h`} pct={pct(T("sleep"), goals.sleep)} color={VIZ.sleep} />
+              <MetricTile icon={<Droplets size={17} />} label="Hydration" value={`${today.water}L`} sub={`/ ${goals.water}L`} pct={pct(today.water, goals.water)} color={VIZ.water} />
+              <MetricTile icon={<Flame size={17} />} label="Calories" value={today.calories.toLocaleString()} sub={`/ ${goals.calories.toLocaleString()} kcal`} pct={pct(today.calories, goals.calories)} color={VIZ.calories} />
+              <MetricTile icon={<Footprints size={17} />} label="Steps" value={today.steps.toLocaleString()} sub={`/ ${goals.steps.toLocaleString()}`} pct={pct(today.steps, goals.steps)} color={VIZ.steps} />
+              <MetricTile icon={<Moon size={17} />} label="Sleep" value={`${today.sleep}h`} sub={`/ ${goals.sleep}h`} pct={pct(today.sleep, goals.sleep)} color={VIZ.sleep} />
             </div>
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_316px] gap-5">
 
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_316px] gap-5">
               <div className="space-y-5">
 
+                {/* Activity chart */}
                 <Card>
                   <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <BarChart2 size={15} /> Activity Trends
-                    </CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2"><BarChart2 size={15} /> Activity Trends</CardTitle>
                     <Tabs value={chartTab} onValueChange={setChartTab}>
                       <TabsList className="h-8">
                         {["calories", "water", "steps", "sleep"].map((t) => (
@@ -466,25 +607,27 @@ export default function Home() {
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                         <XAxis dataKey="name" axisLine={false} tickLine={false}
                           tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} dy={8} />
-                        <Tooltip content={<ChartTooltip unit={chartUnit} />}
-                          cursor={{ fill: "hsl(var(--muted))", radius: 6 }} />
+                        <Tooltip content={<ChartTooltip unit={chartUnit} />} cursor={{ fill: "hsl(var(--muted))", radius: 6 }} />
                         <Bar dataKey="val" fill={chartColor} radius={[5, 5, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
+
+                {/* Weight trend */}
                 <Card>
                   <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <TrendingDown size={15} /> Weight Trend
-                    </CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2"><TrendingDown size={15} /> Weight Trend</CardTitle>
                     <Badge variant="secondary" className="text-xs gap-1">
-                      <TrendingDown size={10} style={{ color: VIZ.steps }} /> –1.0 kg this week
+                      {weightDelta <= 0
+                        ? <TrendingDown size={10} style={{ color: VIZ.steps }} />
+                        : <TrendingUp size={10} style={{ color: VIZ.red }} />}
+                      {weightDelta > 0 ? "+" : ""}{weightDelta} kg this week
                     </Badge>
                   </CardHeader>
                   <CardContent className="h-40 pt-2">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={DAYS.map((name, i) => ({ name, val: stats.weight[i] }))}>
+                      <AreaChart data={DAYS.map((name, i) => ({ name, val: weeklyStats.weight[i] }))}>
                         <defs>
                           <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor={VIZ.weight} stopOpacity={0.25} />
@@ -501,16 +644,21 @@ export default function Home() {
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
+
+                {/* Activity log */}
                 <Card>
                   <CardHeader className="pb-3 border-b">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <History size={14} /> Today's Log
-                      <span className="ml-auto text-xs text-muted-foreground font-normal">{logs.length} entries</span>
+                      <span className="ml-auto text-xs text-muted-foreground font-normal">{activityLogs.length} entries</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {logs.slice(0, 6).map((log) => (
-                      <div key={log.id} className="fit-log-row flex items-center gap-3 px-4 py-3 border-b last:border-0">
+                    {activityLogs.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-8">No entries yet — log something above!</p>
+                    )}
+                    {activityLogs.slice(0, 6).map((log) => (
+                      <div key={log._id} className="fit-log-row flex items-center gap-3 px-4 py-3 border-b last:border-0">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-black"
                           style={{ background: `${TYPE_COLOR[log.type] ?? "#888"}18`, color: TYPE_COLOR[log.type] ?? "#888" }}>
                           {log.type.slice(0, 2).toUpperCase()}
@@ -524,27 +672,29 @@ export default function Home() {
                           {log.amount}
                         </Badge>
                         <span className="text-[11px] text-muted-foreground font-mono shrink-0">{log.time}</span>
-                        <button className="fit-del" onClick={() => deleteLog(log.id)} aria-label="Delete">
-                          <Trash2 size={13} />
-                        </button>
+                        <button className="fit-del" onClick={() => handleDelLog(log._id)}><Trash2 size={13} /></button>
                       </div>
                     ))}
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Sidebar */}
               <div className="space-y-5">
+
+                {/* Overall ring */}
                 <Card>
                   <CardContent className="pt-6 flex flex-col items-center gap-4">
                     <Ring value={overallPct} size={136} stroke={11} color="hsl(var(--primary))">
                       <p className="text-3xl font-black leading-none">{overallPct}%</p>
                       <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Daily Goal</p>
                     </Ring>
-                    <p className="font-bold text-base -mt-1">Lina Blake</p>
+                    <p className="font-bold text-base -mt-1">{name}</p>
                     <div className="grid grid-cols-2 gap-2 w-full">
                       {[
-                        { l: "Sleep", v: `${T("sleep")}h`, c: VIZ.sleep },
-                        { l: "Weight", v: `${stats.weight[6]}kg`, c: VIZ.steps },
-                        { l: "BMI", v: bmiVal, c: bmiColor },
+                        { l: "Sleep", v: `${today.sleep}h`, c: VIZ.sleep },
+                        { l: "Weight", v: `${today.weight}kg`, c: VIZ.steps },
+                        { l: "BMI", v: bmiVal ?? "–", c: bmiColor },
                         { l: "Kcal Left", v: caloriesLeft.toLocaleString(), c: VIZ.calories },
                       ].map(({ l, v, c }) => (
                         <div key={l} className="bg-muted/50 border rounded-xl p-2.5 text-center">
@@ -555,6 +705,8 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Water glasses */}
                 <Card>
                   <CardHeader className="pb-1">
                     <CardTitle className="text-sm flex items-center justify-between">
@@ -565,8 +717,7 @@ export default function Home() {
                   <CardContent className="space-y-1">
                     <div className="flex gap-1.5 flex-wrap">
                       {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="fit-glass" onClick={() => setWaterGlasses(i + 1)}
-                          title={`${(i + 1) * 250}ml`}>
+                        <div key={i} className="fit-glass" onClick={() => handleGlass(i)} title={`${(i + 1) * 250}ml`}>
                           <div className="fit-glass-fill" style={{ height: i < waterGlasses ? "80%" : "0%" }} />
                         </div>
                       ))}
@@ -574,6 +725,8 @@ export default function Home() {
                     <p className="text-[11px] text-muted-foreground">Click a glass to update · 250 ml each</p>
                   </CardContent>
                 </Card>
+
+                {/* Macros */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
@@ -588,6 +741,7 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
+                {/* Mood */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2"><Smile size={14} /> Today's Mood</CardTitle>
@@ -601,7 +755,7 @@ export default function Home() {
                       ].map((m) => (
                         <Button key={m.k} variant={mood === m.k ? "default" : "ghost"}
                           className="flex-1 rounded-lg h-11 flex-col gap-1 text-[10px] uppercase tracking-wider font-bold"
-                          onClick={() => setMood(m.k)}>
+                          onClick={() => handleMood(m.k)}>
                           {m.icon} {m.label}
                         </Button>
                       ))}
@@ -609,19 +763,20 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
+                {/* Streak */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
                       <span className="flex items-center gap-2"><Award size={14} /> Streak</span>
                       <Badge variant="secondary" className="text-xs gap-1">
-                        <Flame size={10} style={{ color: VIZ.calories }} /> 6 days
+                        <Flame size={10} style={{ color: VIZ.calories }} /> {streak.count} days
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-1">
                       {WEEKDAYS.map((d, i) => {
-                        const s = streaks[i];
+                        const s = streak.week?.[i];
                         return (
                           <div key={i} className="flex-1 flex flex-col items-center gap-1">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"
@@ -640,19 +795,20 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
+                {/* BMI */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
                       <span className="flex items-center gap-2"><Scale size={14} /> BMI</span>
-                      <Badge variant="secondary" className="text-xs"
-                        style={{ background: `${bmiColor}18`, color: bmiColor }}>
-                        {bmiLabel}
-                      </Badge>
+                      {bmiVal && (
+                        <Badge variant="secondary" className="text-xs"
+                          style={{ background: `${bmiColor}18`, color: bmiColor }}>{bmiLabel}</Badge>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-baseline gap-1.5 mb-3">
-                      <span className="text-3xl font-black" style={{ color: bmiColor }}>{bmiVal}</span>
+                      <span className="text-3xl font-black" style={{ color: bmiColor }}>{bmiVal ?? "–"}</span>
                       <span className="text-xs text-muted-foreground font-semibold">kg/m²</span>
                     </div>
                     <div className="relative h-2.5 rounded-full overflow-hidden"
@@ -672,18 +828,18 @@ export default function Home() {
           </div>
         )}
 
+        {/* ── Workouts tab ── */}
         {activeSection === "workouts" && (
           <div className="max-w-3xl space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black">Workouts</h2>
-              <LogDialog type="workout" onSave={handleLog} />
+              <WorkoutLogDialog onSave={handleLog} loading={loading} />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { label: "This Week", val: `${workouts.filter(w => w.date === "Today").length + 2} sessions`, icon: <Dumbbell size={18} />, color: VIZ.calories },
-                { label: "Calories Burned", val: `${workouts.reduce((s, w) => s + w.calories, 0).toLocaleString()} kcal`, icon: <Flame size={18} />, color: VIZ.red },
-                { label: "Active Minutes", val: `${workouts.reduce((s, w) => s + w.duration, 0)} min`, icon: <Zap size={18} />, color: VIZ.steps },
+                { label: "This Week", val: `${workouts.filter((w) => w.date === "Today").length} sessions`, icon: <Dumbbell size={18} />, color: VIZ.calories },
+                { label: "Calories Burned", val: `${totalWCal.toLocaleString()} kcal`, icon: <Flame size={18} />, color: VIZ.red },
+                { label: "Active Minutes", val: `${totalWMin} min`, icon: <Zap size={18} />, color: VIZ.steps },
               ].map(({ label, val, icon, color }) => (
                 <Card key={label} className="fit-card-hover">
                   <CardContent className="p-5">
@@ -696,16 +852,17 @@ export default function Home() {
                 </Card>
               ))}
             </div>
-
             <Card>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm flex items-center gap-2"><Dumbbell size={14} /> Recent Workouts</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
+                {workouts.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">No workouts yet — log one above!</p>
+                )}
                 {workouts.map((w) => (
-                  <div key={w.id} className="fit-log-row flex items-center gap-3 px-4 py-3 border-b last:border-0">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                      style={{ background: `${VIZ.red}18` }}>
+                  <div key={w._id} className="fit-log-row flex items-center gap-3 px-4 py-3 border-b last:border-0">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${VIZ.red}18` }}>
                       <Dumbbell size={16} style={{ color: VIZ.red }} />
                     </div>
                     <div className="flex-1">
@@ -714,33 +871,35 @@ export default function Home() {
                     </div>
                     <Badge variant="secondary" style={{ background: `${VIZ.red}14`, color: VIZ.red }}>{w.duration} min</Badge>
                     <Badge variant="secondary" style={{ background: `${VIZ.calories}14`, color: VIZ.calories }}>{w.calories} kcal</Badge>
+                    <button className="fit-del" onClick={() => handleDelWkt(w._id)}><Trash2 size={13} /></button>
                   </div>
                 ))}
               </CardContent>
             </Card>
           </div>
         )}
+
+        {/* ── Nutrition tab ── */}
         {activeSection === "nutrition" && (
           <div className="max-w-3xl space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black">Nutrition</h2>
-              <LogDialog type="calories" onSave={handleLog} />
+              <LogDialog type="calories" onSave={handleLog} loading={loading} />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2"><Flame size={14} /> Calories</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center gap-5">
-                  <Ring value={pct(T("calories"), goals.calories)} size={108} stroke={10} color={VIZ.calories}>
-                    <p className="text-xl font-black leading-none" style={{ color: VIZ.calories }}>{T("calories")}</p>
+                  <Ring value={pct(today.calories, goals.calories)} size={108} stroke={10} color={VIZ.calories}>
+                    <p className="text-xl font-black leading-none" style={{ color: VIZ.calories }}>{today.calories}</p>
                     <p className="text-[10px] text-muted-foreground font-semibold">kcal</p>
                   </Ring>
                   <div className="space-y-2">
                     {[
                       { label: "Goal", val: goals.calories, color: undefined },
-                      { label: "Consumed", val: T("calories"), color: VIZ.calories },
+                      { label: "Consumed", val: today.calories, color: VIZ.calories },
                       { label: "Remaining", val: caloriesLeft, color: VIZ.steps },
                     ].map(({ label, val, color }) => (
                       <div key={label}>
@@ -764,26 +923,15 @@ export default function Home() {
             </div>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingUp size={14} /> Calorie History (7 days)
-                </CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2"><TrendingUp size={14} /> Calorie History (7 days)</CardTitle>
               </CardHeader>
               <CardContent className="h-52 pt-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={DAYS.map((name, i) => ({ name, consumed: stats.calories[i], goal: goals.calories }))}
-                    barSize={22}>
+                  <BarChart data={DAYS.map((name, i) => ({ name, consumed: weeklyStats.calories[i], goal: goals.calories }))} barSize={22}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false}
                       tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} dy={8} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "12px",
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        fontSize: 12,
-                      }}
-                    />
+                    <Tooltip contentStyle={{ borderRadius: "12px", background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
                     <Bar dataKey="consumed" fill={VIZ.calories} radius={[5, 5, 0, 0]} name="Consumed" />
                     <Bar dataKey="goal" fill="hsl(var(--border))" radius={[5, 5, 0, 0]} name="Goal" />
                   </BarChart>
