@@ -16,10 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // ── API config ────────────────────────────────────────────────────────────────
 const API_KEY = "rW3jvQGIzLWXHlS1PTNLkrZvHvGrXm0mMPiaMhfc"
-
-// CalorieNinjas free tier returns a string for calories on restricted items:
-// e.g. "Only available for premium subscribers."
-// These helpers make every numeric field safe to use regardless.
 const parseNum = (val) => { const n = parseFloat(val); return isNaN(n) ? 0 : n }
 const fmtNum = (val, dec = 1) => parseNum(val).toFixed(dec)
 

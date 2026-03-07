@@ -1,0 +1,105 @@
+// Example: Adding a breakfast item
+app.post("/add-breakfast/:userId", async (req, res) => {
+    const { userId } = req.params;
+    const { foodName, calories } = req.body;
+
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { 
+                $push: { "nutrition.breakfast": { foodName, calories } } 
+            },
+            { new: true }
+        );
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(500).send(err);
+    }
+});
+
+
+
+// add nutrition log by day
+
+app.post("/api/nutrition/add", async (req, res) => {
+  const { userId, mealType, foodData } = req.body; 
+  // mealType would be 'breakfast', 'lunch', or 'dinner'
+  
+  const today = new Date().setHours(0, 0, 0, 0);
+
+  try {
+    // 1. Find the user and the specific log for today
+    const user = await User.findOne({ 
+        _id: userId, 
+        "nutritionLogs.date": today 
+    });
+
+    if (user) {
+      // 2. If log exists, push the food item to the correct meal array
+      await User.updateOne(
+        { _id: userId, "nutritionLogs.date": today },
+        { $push: { [`nutritionLogs.$.${mealType}`]: foodData } }
+      );
+    } else {
+      // 3. If no log for today, create a new day object
+      await User.findByIdAndUpdate(userId, {
+        $push: { 
+          nutritionLogs: { 
+            date: today, 
+            [mealType]: [foodData] 
+          } 
+        }
+      });
+    }
+    res.status(200).json({ message: "Meal added successfully!" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// get total calories by day
+app.get("/api/nutrition/daily-total/:userId/:date", async (req, res) => {
+  const { userId, date } = req.params;
+  
+  // Ensure the date is set to the start of the day (midnight) to match the DB
+  const searchDate = new Date(date).setHours(0, 0, 0, 0);
+
+  try {
+    const dailyTotal = await User.aggregate([
+      // 1. Find the specific user
+      { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+      
+      // 2. Filter the nutritionLogs array to only the specific date
+      { $unwind: "$nutritionLogs" },
+      { $match: { "nutritionLogs.date": new Date(searchDate) } },
+      
+      // 3. Project (calculate) the sums of each meal array
+      {
+        $project: {
+          _id: 0,
+          date: "$nutritionLogs.date",
+          totalCalories: {
+            $add: [
+              { $sum: "$nutritionLogs.breakfast.calories" },
+              { $sum: "$nutritionLogs.lunch.calories" },
+              { $sum: "$nutritionLogs.dinner.calories" }
+            ]
+          },
+          totalProtein: {
+            $add: [
+              { $sum: "$nutritionLogs.breakfast.protein" },
+              { $sum: "$nutritionLogs.lunch.protein" },
+              { $sum: "$nutritionLogs.dinner.protein" }
+            ]
+          }
+        }
+      }
+    ]);
+
+    // dailyTotal will be an array; return the first object if found
+    res.json(dailyTotal[0] || { totalCalories: 0, totalProtein: 0 });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});

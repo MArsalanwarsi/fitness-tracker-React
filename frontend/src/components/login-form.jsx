@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import { useSelector, useDispatch } from 'react-redux';
 import { loginUser } from "../redux/slice/authSlice";
 import { useState } from "react"
+import heroimg from '../assets/Hero_IMG/Hero_IMG.png'
 
 export function LoginForm({
   className,
@@ -52,7 +53,6 @@ const handleSubmit = async (e) => {
 
       if (loginUser.fulfilled.match(resultAction)) {
         toast.success("Login successfully!");
-        // navigate("/Dashboard"); 
       } else {
         const message = resultAction.payload?.error || "Login failed";
         toast.error(message);
@@ -125,7 +125,7 @@ const handleSubmit = async (e) => {
           </form>
           <div className="bg-muted relative hidden md:block">
             <img
-              src="/placeholder.svg"
+              src={heroimg}
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale" />
           </div>

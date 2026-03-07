@@ -18,12 +18,16 @@ import { TeamSwitcher } from "@/components/team-switcher"
 import {
   Sidebar,
   SidebarContent,
+  SidebarMenu,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar"
 import { useSelector } from "react-redux";
-import { NavSecondary } from "./nav-secondary"
+import { NavSecondary } from "./nav-secondary";
+import { Link } from "react-router-dom";
 const data = {
   teams: [
     {
@@ -87,30 +91,6 @@ const data = {
         },
       ],
     },
-    {
-      title: "Settings",
-      url: "settings",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "settings/general",
-        },
-        {
-          title: "Team",
-          url: "settings/team",
-        },
-        {
-          title: "Billing",
-          url: "settings/billing",
-        },
-        {
-          title: "Limits",
-          url: "settings/limits",
-        },
-
-      ],
-    },
   ],
 }
 
@@ -121,7 +101,19 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
+            >
+              <Link to={"/"}>
+                <SquareTerminal className="size-5!" />
+                <span className="text-base font-semibold">Fitness Tracker</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

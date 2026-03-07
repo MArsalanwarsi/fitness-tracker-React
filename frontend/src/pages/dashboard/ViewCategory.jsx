@@ -18,6 +18,8 @@ import { useState, useMemo, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { toast } from "react-toastify"
 import { fetchCategories } from "../../redux/slice/categorySlice"
+import { Link } from "react-router-dom";
+
 
 // ── Sort icon ─────────────────────────────────────────────────────────────────
 const SortIcon = ({ column, sorting }) => {
@@ -98,9 +100,11 @@ export default function ViewCategory() {
           <Button variant="outline" size="sm" className="gap-1.5 hidden lg:flex">
             <Download className="h-4 w-4" /> Export
           </Button>
+          <Link to={'/dashboard/Excersise/addCategory'}>
           <Button size="sm" className="gap-1.5">
             <Plus className="h-4 w-4" /> Add Category
           </Button>
+          </Link>
         </div>
       </div>
 

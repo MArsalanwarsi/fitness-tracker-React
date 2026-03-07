@@ -47,7 +47,7 @@ const App = () => {
         <Route
           path="/*"
           element={
-            <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+            <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
               <Routes>
                 {/* Dashboard Routes */}
                 <Route path="/dashboard" element={loggedIn ? <DashboardLayout /> : <Navigate to="/login" />}>

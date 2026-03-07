@@ -21,6 +21,8 @@ import { useDispatch, useSelector } from "react-redux"
 import { deleteExcersise, fetchUserExcersises } from "../../redux/slice/excersiseSlice"
 import { ExerciseModal } from "./SingleExcersise"
 import { toast } from "react-toastify"
+import { Link } from "react-router-dom";
+
 
 // ── Difficulty badge ──────────────────────────────────────────────────────────
 const DIFFICULTY_STYLES = {
@@ -134,9 +136,11 @@ export default function AdvancedExerciseTable() {
           <Button variant="outline" size="sm" className="gap-1.5 hidden lg:flex">
             <Download className="h-4 w-4" /> Export
           </Button>
-          <Button size="sm" className="gap-1.5">
+          <Link to={'/dashboard/Excersise/addExcersise'}>
+          <Button size="sm" className="gap-1.5 ">
             <Plus className="h-4 w-4" /> Add Exercise
           </Button>
+          </Link>
         </div>
       </div>
 
@@ -235,11 +239,11 @@ export default function AdvancedExerciseTable() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 rounded-lg border shrink-0">
                       <AvatarImage src={exercise.imageUrl} className="object-cover" />
-                      <AvatarFallback className="bg-muted text-[10px] font-bold rounded-lg">
+                      <AvatarFallback className="bg-muted text-[10px] font-bold rounded-lg" >
                         {exercise.name?.substring(0, 2).toUpperCase() || "EX"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="font-medium text-sm leading-none">{exercise.name}</span>
+                    <span className="font-medium text-sm leading-none hover:cursor-pointer hover:text-blue-400" onClick={() => setSelectedExerciseId(exercise.excersiseId)}>{exercise.name}</span>
                   </div>
                 </TableCell>
 
