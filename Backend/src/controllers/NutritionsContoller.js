@@ -1,8 +1,5 @@
 import User from "../models/authModel.js";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 const VALID_MEALS = ["breakfast", "lunch", "dinner", "snacks"];
 
@@ -12,7 +9,6 @@ const todayMidnight = () => {
     return d;
 };
 
-// Find or create today's daily log for a user
 const getOrCreateTodayLog = async (user) => {
     const today = todayMidnight();
     let log = user.nutritionLogs.find(
@@ -24,15 +20,6 @@ const getOrCreateTodayLog = async (user) => {
     }
     return log;
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CURRENT DAY NUTRITION  (stored on user.nutrition)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * GET /api/nutrition
- * Returns the user's current-day nutrition object (all 4 meals).
- */
 export const getNutrition = async (req, res) => {
     try {
         const id = req.user.id;
@@ -45,12 +32,6 @@ export const getNutrition = async (req, res) => {
     }
 };
 
-/**
- * POST /api/nutrition/:meal
- * Add a food item to a meal (breakfast | lunch | dinner | snacks).
- *
- * Body: { name, calories, protein, carbs, fats }
- */
 export const addFoodToMeal = async (req, res) => {
     try {
         const { meal } = req.params;
@@ -79,12 +60,6 @@ export const addFoodToMeal = async (req, res) => {
     }
 };
 
-/**
- * PUT /api/nutrition/:meal/:foodId
- * Update a specific food item in a meal.
- *
- * Body: { name?, calories?, protein?, carbs?, fats? }
- */
 export const updateFoodInMeal = async (req, res) => {
     try {
         const { meal, foodId } = req.params;
@@ -111,10 +86,6 @@ export const updateFoodInMeal = async (req, res) => {
     }
 };
 
-/**
- * DELETE /api/nutrition/:meal/:foodId
- * Remove a specific food item from a meal.
- */
 export const deleteFoodFromMeal = async (req, res) => {
     try {
         const { meal, foodId } = req.params;
@@ -139,10 +110,6 @@ export const deleteFoodFromMeal = async (req, res) => {
     }
 };
 
-/**
- * DELETE /api/nutrition/:meal
- * Clear all food items from a specific meal.
- */
 export const clearMeal = async (req, res) => {
     try {
         const { meal } = req.params;
@@ -161,18 +128,6 @@ export const clearMeal = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DAILY LOGS  (stored on user.nutritionLogs[])
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * GET /api/nutrition/logs
- * Returns all daily logs (most recent first).
- *
- * Optional query params:
- *   ?limit=7    — return only the last N logs
- *   ?from=YYYY-MM-DD&to=YYYY-MM-DD  — filter by date range
- */
 export const getAllLogs = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select("nutritionLogs");
@@ -201,10 +156,6 @@ export const getAllLogs = async (req, res) => {
     }
 };
 
-/**
- * GET /api/nutrition/logs/today
- * Returns today's log (creates it if it doesn't exist yet).
- */
 export const getTodayLog = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -219,10 +170,7 @@ export const getTodayLog = async (req, res) => {
     }
 };
 
-/**
- * GET /api/nutrition/logs/:logId
- * Returns a single log by its _id.
- */
+
 export const getLogById = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select("nutritionLogs");
@@ -237,12 +185,6 @@ export const getLogById = async (req, res) => {
     }
 };
 
-/**
- * POST /api/nutrition/logs
- * Create a new daily log (or return existing one for that date).
- *
- * Body: { date? }  — defaults to today if omitted
- */
 export const createLog = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -271,16 +213,10 @@ export const createLog = async (req, res) => {
     }
 };
 
-/**
- * POST /api/nutrition/logs/:logId/:meal
- * Add a food item to a specific meal inside a log.
- *
- * Body: { name, calories, protein, carbs, fats }
- */
 export const addFoodToLog = async (req, res) => {
     try {
         const { logId, meal } = req.params;
-        const logMeals = ["breakfast", "lunch", "dinner"]; // dailyLogSchema only has these 3
+        const logMeals = ["breakfast", "lunch", "dinner"]; 
         if (!logMeals.includes(meal))
             return res.status(400).json({ error: `Invalid meal for log. Must be one of: ${logMeals.join(", ")}` });
 
@@ -309,12 +245,7 @@ export const addFoodToLog = async (req, res) => {
     }
 };
 
-/**
- * PUT /api/nutrition/logs/:logId/:meal/:foodId
- * Update a food item inside a specific log's meal.
- *
- * Body: { name?, calories?, protein?, carbs?, fats? }
- */
+
 export const updateFoodInLog = async (req, res) => {
     try {
         const { logId, meal, foodId } = req.params;
@@ -345,10 +276,6 @@ export const updateFoodInLog = async (req, res) => {
     }
 };
 
-/**
- * DELETE /api/nutrition/logs/:logId/:meal/:foodId
- * Remove a food item from a specific log's meal.
- */
 export const deleteFoodFromLog = async (req, res) => {
     try {
         const { logId, meal, foodId } = req.params;
@@ -375,10 +302,6 @@ export const deleteFoodFromLog = async (req, res) => {
     }
 };
 
-/**
- * DELETE /api/nutrition/logs/:logId
- * Delete an entire daily log.
- */
 export const deleteLog = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -396,14 +319,6 @@ export const deleteLog = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ANALYTICS
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * GET /api/nutrition/summary
- * Returns totals for today's nutrition (user.nutrition).
- */
 export const getTodaySummary = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select("nutrition");
@@ -435,11 +350,6 @@ export const getTodaySummary = async (req, res) => {
     }
 };
 
-/**
- * GET /api/nutrition/logs/summary?days=7
- * Returns per-day calorie/macro totals for the last N days (default 7).
- * Useful for charts.
- */
 export const getLogsSummary = async (req, res) => {
     try {
         const days = parseInt(req.query.days) || 7;

@@ -21,7 +21,6 @@ import { AsyncAutocomplete } from "../../components/suggestionInput"
 import { toast } from "react-toastify"
 import { fetchCategories } from "../../redux/slice/categorySlice"
 
-// ── Minimal scoped styles (animation only) ──────────────────────────────────
 const ScopedStyles = () => (
     <style>{`
         @keyframes ae-fade-in {
@@ -87,7 +86,6 @@ const ScopedStyles = () => (
     `}</style>
 )
 
-// ── Section heading ──────────────────────────────────────────────────────────
 const SectionHeading = ({ icon, title, description }) => (
     <div className="flex items-start gap-2 mb-4">
         <div className="mt-0.5 text-muted-foreground">{icon}</div>
@@ -100,7 +98,6 @@ const SectionHeading = ({ icon, title, description }) => (
     </div>
 )
 
-// ── Field wrapper ─────────────────────────────────────────────────────────────
 const Field = ({ label, required, children, hint }) => (
     <div className="space-y-1.5">
         <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -190,7 +187,6 @@ export default function AddExercisePage() {
             <div className="bg-background py-6 px-4">
                 <div className="space-y-6 ae-fade-in">
 
-                    {/* ── Page header ── */}
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
                             <span>Exercises</span>
@@ -203,7 +199,6 @@ export default function AddExercisePage() {
                         </p>
                     </div>
 
-                    {/* ── Progress bar ── */}
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-xs font-semibold text-muted-foreground">
                             <span>Form completion</span>
@@ -217,7 +212,6 @@ export default function AddExercisePage() {
 
                     <form onSubmit={handleSubmit} className="space-y-4">
 
-                        {/* ── SECTION 1 · Image preview ── */}
                         <Card className="overflow-hidden">
                             <div className="overflow-hidden rounded-t-xl border-b bg-muted/40">
                                 <AspectRatio ratio={16 / 6} className="flex items-center justify-center">
@@ -241,7 +235,6 @@ export default function AddExercisePage() {
 
                             <CardContent className="p-5 space-y-5">
 
-                                {/* ── SECTION 1 · Identity ── */}
                                 <div>
                                     <SectionHeading
                                         icon={<Dumbbell size={14} />}
@@ -258,7 +251,6 @@ export default function AddExercisePage() {
                                         </Field>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {/* Category */}
                                             <Field label="Category" required>
                                                 <div className="flex gap-2">
                                                     <Select
@@ -302,7 +294,6 @@ export default function AddExercisePage() {
                                                 </div>
                                             </Field>
 
-                                            {/* Difficulty */}
                                             <Field label="Difficulty" required>
                                                 <div className="flex gap-1.5">
                                                     {difficultyConfig.map(({ value, label }) => (
@@ -321,7 +312,6 @@ export default function AddExercisePage() {
 
                                 <Separator />
 
-                                {/* ── SECTION 2 · Equipment & Volume ── */}
                                 <div>
                                     <SectionHeading
                                         icon={<Settings2 size={14} />}
@@ -419,8 +409,6 @@ export default function AddExercisePage() {
                                 </div>
 
                                 <Separator />
-
-                                {/* ── SECTION 3 · Tags & Description ── */}
                                 <div>
                                     <SectionHeading
                                         icon={<AlignLeft size={14} />}

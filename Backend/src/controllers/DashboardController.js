@@ -16,10 +16,18 @@ const UNIT_LABEL = {
 const fmt12h = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+/**
+ * Returns the weeklyStats array index for the current day.
+ * Array layout: [Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6]
+ *
+ * JS getDay():  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
+ * Formula:      (getDay() + 6) % 7  →  Mon=0 … Sun=6
+ */
+const getTodayIndex = () => (new Date().getDay() + 6) % 7;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GET FULL DASHBOARD
 // GET /api/dashboard
-// Returns everything the dashboard needs in one call.
 // ─────────────────────────────────────────────────────────────────────────────
 export const getDashboard = async (req, res) => {
     try {
@@ -42,6 +50,7 @@ export const getDashboard = async (req, res) => {
                 streak: user.streak,
                 activityLogs: user.activityLogs.sort((a, b) => new Date(b.date) - new Date(a.date)),
                 workouts: user.workouts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+                todayIndex: getTodayIndex(), // send to frontend so charts can highlight today
             },
         });
     } catch (err) {
@@ -52,7 +61,6 @@ export const getDashboard = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // UPDATE GOALS
 // PUT /api/dashboard/goals
-// Body: { water?, calories?, steps?, sleep?, protein?, carbs?, fat? }
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateGoals = async (req, res) => {
     try {
@@ -78,7 +86,7 @@ export const updateGoals = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // LOG ACTIVITY
 // POST /api/dashboard/log
-// Body: { type: "water"|"steps"|"calories"|"sleep"|"weight"|"workout", value, note? }
+// Body: { type, value, note?, caloriesOverride? }
 // ─────────────────────────────────────────────────────────────────────────────
 export const logActivity = async (req, res) => {
     try {
@@ -91,61 +99,62 @@ export const logActivity = async (req, res) => {
             return res.status(400).json({ error: "value must be a number" });
 
         const val = Number(value);
+        const today = getTodayIndex(); // ← correct day slot (Mon=0 … Sun=6)
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // ── Update weeklyStats index 6 (today) ───────────────────────────────────
+        // ── Update the correct day slot in weeklyStats ────────────────────────
         if (type === "sleep") {
-            user.weeklyStats.sleep[6] = val;                          // replace, not add
+            // Sleep is a replacement, not cumulative
+            user.weeklyStats.sleep[today] = val;
+
         } else if (type === "weight") {
-            user.weeklyStats.weight[6] = val;
-            user.bmi.weight = val;                                    // sync BMI weight
+            // Weight is a replacement
+            user.weeklyStats.weight[today] = val;
+            user.bmi.weight = val;
+
         } else if (type === "workout") {
-            // workout doesn't map 1:1 to a stat array — just log it
+            // Workout has no dedicated stat array — handled separately below
+
         } else {
-            user.weeklyStats[type][6] = (user.weeklyStats[type][6] || 0) + val;
+            // water / steps / calories — accumulate during the day
+            user.weeklyStats[type][today] = (user.weeklyStats[type][today] || 0) + val;
         }
         user.markModified("weeklyStats");
 
-        // ── Side-effects ─────────────────────────────────────────────────────────
+        // ── Side-effects ──────────────────────────────────────────────────────
         if (type === "water") {
-            // 250 ml per glass → convert litres → glasses
-            user.waterGlasses = Math.min(
-                user.waterGlasses + Math.round(val * 4),
-                8
-            );
+            user.waterGlasses = Math.min(user.waterGlasses + Math.round(val * 4), 8);
         }
 
         if (type === "calories") {
-            // Rough macro split: 25% protein · 45% carbs · 30% fat
             user.macros.protein = (user.macros.protein || 0) + Math.round(val * 0.25);
             user.macros.carbs = (user.macros.carbs || 0) + Math.round(val * 0.45);
-            user.macros.fat = (user.macros.fat || 0) + Math.round(val * 0.30 / 9);
+            user.macros.fat = (user.macros.fat || 0) + Math.round((val * 0.30) / 9);
         }
 
         if (type === "workout") {
-            const workout = {
+            user.workouts.unshift({
                 name: note || "Workout",
                 duration: Math.round(val),
-                calories: caloriesOverride ? Math.round(Number(caloriesOverride)) : Math.round(val * 6),
+                calories: caloriesOverride
+                    ? Math.round(Number(caloriesOverride))
+                    : Math.round(val * 6),
                 date: "Today",
-            };
-            user.workouts.unshift(workout);
+            });
         }
 
-        // ── Activity log entry ───────────────────────────────────────────────────
-        const logEntry = {
+        // ── Activity log entry ────────────────────────────────────────────────
+        user.activityLogs.unshift({
             type: type.charAt(0).toUpperCase() + type.slice(1),
             amount: `${val} ${UNIT_LABEL[type] ?? ""}`.trim(),
             value: val,
             note,
             time: fmt12h(),
             date: new Date(),
-        };
-        user.activityLogs.unshift(logEntry);
-
-        // Keep activity log at max 50 entries
-        if (user.activityLogs.length > 50) user.activityLogs = user.activityLogs.slice(0, 50);
+        });
+        if (user.activityLogs.length > 50)
+            user.activityLogs = user.activityLogs.slice(0, 50);
 
         await user.save();
 
@@ -212,7 +221,6 @@ export const deleteWorkout = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // UPDATE MOOD
 // PUT /api/dashboard/mood
-// Body: { mood: "bad"|"ok"|"good" }
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateMood = async (req, res) => {
     try {
@@ -236,7 +244,6 @@ export const updateMood = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // UPDATE BMI
 // PUT /api/dashboard/bmi
-// Body: { height?, weight? }
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateBmi = async (req, res) => {
     try {
@@ -247,7 +254,7 @@ export const updateBmi = async (req, res) => {
         if (height !== undefined) user.bmi.height = height;
         if (weight !== undefined) {
             user.bmi.weight = weight;
-            user.weeklyStats.weight[6] = weight;   // sync today's weight stat
+            user.weeklyStats.weight[getTodayIndex()] = weight; // ← correct slot
             user.markModified("weeklyStats");
         }
 
@@ -261,7 +268,6 @@ export const updateBmi = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // UPDATE WATER GLASSES
 // PUT /api/dashboard/water-glasses
-// Body: { count: 0-8 }
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateWaterGlasses = async (req, res) => {
     try {
@@ -283,9 +289,8 @@ export const updateWaterGlasses = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// UPDATE WEEKLY STATS (admin / manual correction)
+// UPDATE WEEKLY STATS (manual correction)
 // PUT /api/dashboard/weekly-stats
-// Body: { water?, calories?, steps?, sleep?, weight? } — each is a 7-element array
 // ─────────────────────────────────────────────────────────────────────────────
 export const updateWeeklyStats = async (req, res) => {
     try {
@@ -294,9 +299,8 @@ export const updateWeeklyStats = async (req, res) => {
 
         const keys = ["water", "calories", "steps", "sleep", "weight"];
         keys.forEach((k) => {
-            if (Array.isArray(req.body[k]) && req.body[k].length === 7) {
+            if (Array.isArray(req.body[k]) && req.body[k].length === 7)
                 user.weeklyStats[k] = req.body[k];
-            }
         });
         user.markModified("weeklyStats");
 
@@ -308,30 +312,36 @@ export const updateWeeklyStats = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RESET TODAY'S STATS (new day reset)
+// RESET TODAY'S SLOT (call once per day, e.g. via cron or on login)
 // POST /api/dashboard/reset-today
+//
+// Instead of shifting the whole array (which broke day alignment),
+// we zero out only today's index so yesterday's data stays intact.
 // ─────────────────────────────────────────────────────────────────────────────
 export const resetTodayStats = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // Shift arrays left, zero out today (index 6)
+        const today = getTodayIndex();
+
+        // Zero out only today's slot — other days are untouched
         ["water", "calories", "steps", "sleep", "weight"].forEach((k) => {
-            user.weeklyStats[k] = [...user.weeklyStats[k].slice(1), 0];
+            user.weeklyStats[k][today] = 0;
         });
         user.markModified("weeklyStats");
 
+        // Reset daily accumulation fields
         user.macros = { protein: 0, carbs: 0, fat: 0 };
         user.waterGlasses = 0;
 
-        // Update streak — mark yesterday as completed if goals were met
-        const streak = [...user.streak.week];
-        streak.shift();
-        streak[5] = 1;        // yesterday = done
-        streak[6] = "today";  // reset today
-        user.streak.week = streak;
-        user.streak.count = user.streak.count + 1;
+        // Advance streak: mark yesterday as completed, reset today marker
+        const yesterday = (today + 6) % 7; // one step back in Mon-Sun ring
+        const week = [...(user.streak.week ?? [0, 0, 0, 0, 0, 0, 0])];
+        week[yesterday] = 1;          // yesterday = done
+        week[today] = "today";    // today = current
+        user.streak.week = week;
+        user.streak.count = (user.streak.count || 0) + 1;
         user.markModified("streak");
 
         await user.save();
@@ -342,6 +352,7 @@ export const resetTodayStats = async (req, res) => {
             macros: user.macros,
             waterGlasses: user.waterGlasses,
             streak: user.streak,
+            todayIndex: today,
         });
     } catch (err) {
         return res.status(500).json({ error: err.message });

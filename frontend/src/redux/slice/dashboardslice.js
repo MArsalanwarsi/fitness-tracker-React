@@ -1,214 +1,131 @@
 import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
+import Cookies from "js-cookie";
 import api from "../../api/api";
-import Cookies from 'js-cookie';
+
 const BASE = "/dashboard";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ASYNC THUNKS
-// ─────────────────────────────────────────────────────────────────────────────
+const authHeader = () => {
+    const token = Cookies.get("auth_token");
+    if (!token) throw new Error("No token found");
+    return { headers: { Authorization: `Bearer ${token}` } };
+};
 
-/** GET /api/dashboard — fetch everything in one call */
 export const fetchDashboard = createAsyncThunk(
     "dashboard/fetchDashboard",
     async (_, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            const { data } = await api.get(BASE, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-            );
+            const { data } = await api.get(BASE, authHeader());
             return data.dashboard;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** PUT /api/dashboard/goals — body: { water, calories, steps, sleep, protein, carbs, fat } */
 export const updateGoals = createAsyncThunk(
     "dashboard/updateGoals",
     async (goals, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            const { data } = await api.put(`${BASE}/goals`, goals, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const { data } = await api.put(`${BASE}/goals`, goals, authHeader());
             return data.goals;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** PUT /api/dashboard/mood — body: { mood: "bad"|"ok"|"good" } */
 export const updateMood = createAsyncThunk(
     "dashboard/updateMood",
     async (mood, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            const { data } = await api.put(`${BASE}/mood`, { mood }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const { data } = await api.put(`${BASE}/mood`, { mood }, authHeader());
             return data.mood;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** PUT /api/dashboard/bmi — body: { height?, weight? } */
 export const updateBmi = createAsyncThunk(
     "dashboard/updateBmi",
     async (bmi, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            const { data } = await api.put(`${BASE}/bmi`, bmi, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const { data } = await api.put(`${BASE}/bmi`, bmi, authHeader());
             return data.bmi;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** PUT /api/dashboard/water-glasses — body: { count: 0-8 } */
 export const updateWaterGlasses = createAsyncThunk(
     "dashboard/updateWaterGlasses",
     async (count, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            const { data } = await api.put(`${BASE}/water-glasses`, { count }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const { data } = await api.put(`${BASE}/water-glasses`, { count }, authHeader());
             return data.waterGlasses;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** POST /api/dashboard/log — body: { type, value, note?, caloriesOverride? } */
 export const logActivity = createAsyncThunk(
     "dashboard/logActivity",
     async ({ type, value, note = "", caloriesOverride }, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            const { data } = await api.post(`${BASE}/log`, { type, value, note, caloriesOverride }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            return data; // { log, weeklyStats, macros, waterGlasses, workouts }
+            const { data } = await api.post(`${BASE}/log`, { type, value, note, caloriesOverride }, authHeader());
+            return data;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** DELETE /api/dashboard/log/:logId */
 export const deleteActivityLog = createAsyncThunk(
     "dashboard/deleteActivityLog",
     async (logId, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            await api.delete(`${BASE}/log/${logId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            await api.delete(`${BASE}/log/${logId}`, authHeader());
             return logId;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** DELETE /api/dashboard/workouts/:workoutId */
 export const deleteWorkout = createAsyncThunk(
     "dashboard/deleteWorkout",
     async (workoutId, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            await api.delete(`${BASE}/workouts/${workoutId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            await api.delete(`${BASE}/workouts/${workoutId}`, authHeader());
             return workoutId;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
 
-/** POST /api/dashboard/reset-today */
 export const resetTodayStats = createAsyncThunk(
     "dashboard/resetTodayStats",
     async (_, { rejectWithValue }) => {
-        const token = Cookies.get('auth_token');
-        if (!token) {
-            return rejectWithValue("No token found");
-        }
         try {
-            const { data } = await api.post(`${BASE}/reset-today`, null, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            return data; // { weeklyStats, macros, waterGlasses, streak }
+            const { data } = await api.post(`${BASE}/reset-today`, {}, authHeader());
+            return data;
         } catch (err) {
-            return rejectWithValue(err.response?.data?.error || err.message);
+            return rejectWithValue(err.message || err.response?.data?.error);
         }
     }
 );
-
-// ─────────────────────────────────────────────────────────────────────────────
-// INITIAL STATE
-// ─────────────────────────────────────────────────────────────────────────────
 
 const EMPTY_WEEKLY = [0, 0, 0, 0, 0, 0, 0];
 
 const initialState = {
-    // Profile
+
     name: "",
     profile_pic: null,
 
-    // Goals
+
     goals: {
         water: 3,
         calories: 2500,
@@ -219,7 +136,7 @@ const initialState = {
         fat: 80,
     },
 
-    // Weekly arrays (index 6 = today)
+
     weeklyStats: {
         water: [...EMPTY_WEEKLY],
         calories: [...EMPTY_WEEKLY],
@@ -228,31 +145,30 @@ const initialState = {
         weight: [...EMPTY_WEEKLY],
     },
 
-    // Today's macros
+
     macros: { protein: 0, carbs: 0, fat: 0 },
 
-    // Body stats
+
     bmi: { height: 170, weight: 70 },
 
-    // Quick widgets
+
     waterGlasses: 0,
     mood: "good",
 
-    // Streak
+
     streak: { week: [0, 0, 0, 0, 0, 0, "today"], count: 0 },
 
-    // Lists
+
     activityLogs: [],
     workouts: [],
 
-    // UI
+
+    todayIndex: (new Date().getDay() + 6) % 7,
+
+
     loading: false,
     error: null,
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SLICE
-// ─────────────────────────────────────────────────────────────────────────────
 
 const dashboardSlice = createSlice({
     name: "dashboard",
@@ -261,12 +177,12 @@ const dashboardSlice = createSlice({
     reducers: {
         clearDashboardError: (state) => { state.error = null; },
 
-        // Optimistic water glass toggle (instant UI, confirmed by thunk)
+
         setWaterGlassesLocal: (state, action) => {
             state.waterGlasses = action.payload;
         },
 
-        // Optimistic mood toggle
+
         setMoodLocal: (state, action) => {
             state.mood = action.payload;
         },
@@ -274,7 +190,7 @@ const dashboardSlice = createSlice({
 
     extraReducers: (builder) => {
 
-        // ── fetchDashboard ───────────────────────────────────────────────────────
+
         builder
             .addCase(fetchDashboard.pending, (state) => {
                 state.loading = true;
@@ -282,24 +198,26 @@ const dashboardSlice = createSlice({
             })
             .addCase(fetchDashboard.fulfilled, (state, { payload }) => {
                 state.loading = false;
-                state.name = payload.name ?? state.name;
-                state.profile_pic = payload.profile_pic ?? state.profile_pic;
-                state.goals = payload.goals ?? state.goals;
-                state.weeklyStats = payload.weeklyStats ?? state.weeklyStats;
-                state.macros = payload.macros ?? state.macros;
-                state.bmi = payload.bmi ?? state.bmi;
-                state.waterGlasses = payload.waterGlasses ?? state.waterGlasses;
-                state.mood = payload.mood ?? state.mood;
-                state.streak = payload.streak ?? state.streak;
-                state.activityLogs = payload.activityLogs ?? state.activityLogs;
-                state.workouts = payload.workouts ?? state.workouts;
+                if (!payload) return;
+                if (payload.name !== undefined) state.name = payload.name;
+                if (payload.profile_pic !== undefined) state.profile_pic = payload.profile_pic;
+                if (payload.goals !== undefined) state.goals = payload.goals;
+                if (payload.weeklyStats !== undefined) state.weeklyStats = payload.weeklyStats;
+                if (payload.macros !== undefined) state.macros = payload.macros;
+                if (payload.bmi !== undefined) state.bmi = payload.bmi;
+                if (payload.waterGlasses !== undefined) state.waterGlasses = payload.waterGlasses;
+                if (payload.mood !== undefined) state.mood = payload.mood;
+                if (payload.streak !== undefined) state.streak = payload.streak;
+                if (payload.activityLogs !== undefined) state.activityLogs = payload.activityLogs;
+                if (payload.workouts !== undefined) state.workouts = payload.workouts;
+                if (payload.todayIndex !== undefined) state.todayIndex = payload.todayIndex;
             })
             .addCase(fetchDashboard.rejected, (state, { payload }) => {
                 state.loading = false;
                 state.error = payload;
             });
 
-        // ── updateGoals ──────────────────────────────────────────────────────────
+
         builder
             .addCase(updateGoals.fulfilled, (state, { payload }) => {
                 state.goals = payload;
@@ -308,17 +226,17 @@ const dashboardSlice = createSlice({
                 state.error = payload;
             });
 
-        // ── updateMood ───────────────────────────────────────────────────────────
+
         builder
             .addCase(updateMood.fulfilled, (state, { payload }) => {
                 state.mood = payload;
             })
             .addCase(updateMood.rejected, (state, { payload }) => {
                 state.error = payload;
-                // mood already set optimistically — could revert here if needed
+
             });
 
-        // ── updateBmi ────────────────────────────────────────────────────────────
+
         builder
             .addCase(updateBmi.fulfilled, (state, { payload }) => {
                 state.bmi = payload;
@@ -327,7 +245,7 @@ const dashboardSlice = createSlice({
                 state.error = payload;
             });
 
-        // ── updateWaterGlasses ───────────────────────────────────────────────────
+
         builder
             .addCase(updateWaterGlasses.fulfilled, (state, { payload }) => {
                 state.waterGlasses = payload;
@@ -336,10 +254,10 @@ const dashboardSlice = createSlice({
                 state.error = payload;
             });
 
-        // ── logActivity ──────────────────────────────────────────────────────────
+
         builder
             .addCase(logActivity.fulfilled, (state, { payload }) => {
-                // Backend returns all affected fields in one response
+
                 if (payload.log) state.activityLogs = [payload.log, ...state.activityLogs].slice(0, 50);
                 if (payload.weeklyStats) state.weeklyStats = payload.weeklyStats;
                 if (payload.macros) state.macros = payload.macros;
@@ -350,7 +268,7 @@ const dashboardSlice = createSlice({
                 state.error = payload;
             });
 
-        // ── deleteActivityLog ────────────────────────────────────────────────────
+
         builder
             .addCase(deleteActivityLog.fulfilled, (state, { payload: logId }) => {
                 state.activityLogs = state.activityLogs.filter((l) => l._id !== logId);
@@ -359,7 +277,7 @@ const dashboardSlice = createSlice({
                 state.error = payload;
             });
 
-        // ── deleteWorkout ────────────────────────────────────────────────────────
+
         builder
             .addCase(deleteWorkout.fulfilled, (state, { payload: workoutId }) => {
                 state.workouts = state.workouts.filter((w) => w._id !== workoutId);
@@ -368,13 +286,14 @@ const dashboardSlice = createSlice({
                 state.error = payload;
             });
 
-        // ── resetTodayStats ──────────────────────────────────────────────────────
+
         builder
             .addCase(resetTodayStats.fulfilled, (state, { payload }) => {
                 if (payload.weeklyStats) state.weeklyStats = payload.weeklyStats;
                 if (payload.macros) state.macros = payload.macros;
                 if (payload.waterGlasses !== undefined) state.waterGlasses = payload.waterGlasses;
                 if (payload.streak) state.streak = payload.streak;
+                if (payload.todayIndex !== undefined) state.todayIndex = payload.todayIndex;
             })
             .addCase(resetTodayStats.rejected, (state, { payload }) => {
                 state.error = payload;
@@ -387,10 +306,6 @@ export const {
     setWaterGlassesLocal,
     setMoodLocal,
 } = dashboardSlice.actions;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SELECTORS
-// ─────────────────────────────────────────────────────────────────────────────
 
 const selectDashboard = (state) => state.dashboard;
 
@@ -408,26 +323,26 @@ export const selectStreak = (state) => state.dashboard.streak;
 export const selectActivityLogs = (state) => state.dashboard.activityLogs;
 export const selectWorkouts = (state) => state.dashboard.workouts;
 
-/** Today's values (index 6 of each weekly array) — memoized */
+export const selectTodayIndex = (state) => state.dashboard.todayIndex;
+
 export const selectTodayStats = createSelector(
     selectWeeklyStats,
-    (weekly) => ({
-        water: weekly.water[6] ?? 0,
-        calories: weekly.calories[6] ?? 0,
-        steps: weekly.steps[6] ?? 0,
-        sleep: weekly.sleep[6] ?? 0,
-        weight: weekly.weight[6] ?? 0,
+    selectTodayIndex,
+    (weekly, i) => ({
+        water: weekly.water[i] ?? 0,
+        calories: weekly.calories[i] ?? 0,
+        steps: weekly.steps[i] ?? 0,
+        sleep: weekly.sleep[i] ?? 0,
+        weight: weekly.weight[i] ?? 0,
     })
 );
 
-/** Computed BMI value — memoized */
 export const selectBmiValue = createSelector(
     selectBmi,
     ({ height, weight }) =>
         height > 0 ? +(weight / ((height / 100) ** 2)).toFixed(1) : null
 );
 
-/** Overall daily goal % — memoized */
 export const selectOverallPct = createSelector(
     selectTodayStats,
     selectGoals,
@@ -442,14 +357,12 @@ export const selectOverallPct = createSelector(
     }
 );
 
-/** Calories remaining today — memoized */
 export const selectCaloriesLeft = createSelector(
     selectTodayStats,
     selectGoals,
     (today, goals) => Math.max(0, goals.calories - today.calories)
 );
 
-/** Weight trend delta (first vs last of weekly array) — memoized */
 export const selectWeightDelta = createSelector(
     selectWeeklyStats,
     (weekly) => {
@@ -460,22 +373,14 @@ export const selectWeightDelta = createSelector(
     }
 );
 
-/** Total workout calories burned — memoized */
 export const selectTotalWorkoutCalories = createSelector(
     selectWorkouts,
     (workouts) => workouts.reduce((s, w) => s + (w.calories || 0), 0)
 );
 
-/** Total workout minutes — memoized */
 export const selectTotalWorkoutMinutes = createSelector(
     selectWorkouts,
     (workouts) => workouts.reduce((s, w) => s + (w.duration || 0), 0)
 );
 
 export default dashboardSlice.reducer;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// REGISTER IN store.js:
-// import dashboardReducer from "./slice/dashboardSlice";
-// dashboard: dashboardReducer,
-// ─────────────────────────────────────────────────────────────────────────────

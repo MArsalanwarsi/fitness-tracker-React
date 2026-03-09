@@ -3,12 +3,6 @@ import api from "../../api/api";
 import Cookies from 'js-cookie';
 const BASE = "/nutrition";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ASYNC THUNKS
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ── Current-day nutrition ─────────────────────────────────────────────────────
-
 export const fetchNutrition = createAsyncThunk(
     "nutrition/fetchNutrition",
     async (_, { rejectWithValue }) => {
@@ -49,7 +43,6 @@ export const fetchTodaySummary = createAsyncThunk(
     }
 );
 
-// body: { name, calories, protein, carbs, fats }
 export const addFoodToMeal = createAsyncThunk(
     "nutrition/addFoodToMeal",
     async ({ meal, foodData }, { rejectWithValue }) => {
@@ -70,7 +63,6 @@ export const addFoodToMeal = createAsyncThunk(
     }
 );
 
-// body: { name?, calories?, protein?, carbs?, fats? }
 export const updateFoodInMeal = createAsyncThunk(
     "nutrition/updateFoodInMeal",
     async ({ meal, foodId, updates }, { rejectWithValue }) => {
@@ -131,9 +123,6 @@ export const clearMeal = createAsyncThunk(
     }
 );
 
-// ── Daily logs ────────────────────────────────────────────────────────────────
-
-// params: { limit?, from?, to? }
 export const fetchAllLogs = createAsyncThunk(
     "nutrition/fetchAllLogs",
     async (params = {}, { rejectWithValue }) => {
@@ -170,7 +159,6 @@ export const fetchTodayLog = createAsyncThunk(
     }
 );
 
-// params: { days? }
 export const fetchLogsSummary = createAsyncThunk(
     "nutrition/fetchLogsSummary",
     async (days = 7, { rejectWithValue }) => {
@@ -180,7 +168,7 @@ export const fetchLogsSummary = createAsyncThunk(
         }
         try {
             const { data } = await api.get(`${BASE}/logs/summary`, { params: { days }, headers: { Authorization: `Bearer ${token}` } });
-            return data.data; // array of { date, calories, protein, carbs, fats }
+            return data.data; 
         } catch (err) {
             return rejectWithValue(err.response?.data?.error || err.message);
         }
@@ -207,7 +195,6 @@ export const fetchLogById = createAsyncThunk(
     }
 );
 
-// body: { date? }
 export const createLog = createAsyncThunk(
     "nutrition/createLog",
     async (date = null, { rejectWithValue }) => {
@@ -228,7 +215,6 @@ export const createLog = createAsyncThunk(
     }
 );
 
-// body: { name, calories, protein, carbs, fats }
 export const addFoodToLog = createAsyncThunk(
     "nutrition/addFoodToLog",
     async ({ logId, meal, foodData }, { rejectWithValue }) => {
@@ -249,7 +235,6 @@ export const addFoodToLog = createAsyncThunk(
     }
 );
 
-// body: { name?, calories?, protein?, carbs?, fats? }
 export const updateFoodInLog = createAsyncThunk(
     "nutrition/updateFoodInLog",
     async ({ logId, meal, foodId, updates }, { rejectWithValue }) => {
@@ -310,37 +295,25 @@ export const deleteLog = createAsyncThunk(
     }
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INITIAL STATE
-// ─────────────────────────────────────────────────────────────────────────────
 
 const initialState = {
-    // Current-day nutrition
     nutrition: {
         breakfast: [],
         lunch: [],
         dinner: [],
         snacks: [],
     },
-    summary: null,        // { calories, protein, carbs, fats, byMeal: {} }
+    summary: null,       
 
-    // Daily logs
-    logs: [],    // all logs array
-    todayLog: null,  // today's log object
-    selectedLog: null,  // log opened by ID
-    logsSummary: [],    // chart data [{ date, calories, protein, carbs, fats }]
-
-    // UI state
+    logs: [],   
+    todayLog: null,  
+    selectedLog: null,  
+    logsSummary: [],    
     loading: false,
     logLoading: false,
     error: null,
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Replace a food item inside a log's meal array by _id
 const replaceFoodInLog = (logs, logId, meal, updatedItem) =>
     logs.map((log) => {
         if (log._id !== logId) return log;
@@ -352,9 +325,6 @@ const replaceFoodInLog = (logs, logId, meal, updatedItem) =>
         };
     });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SLICE
-// ─────────────────────────────────────────────────────────────────────────────
 
 const nutritionSlice = createSlice({
     name: "nutrition",
@@ -367,11 +337,9 @@ const nutritionSlice = createSlice({
 
     extraReducers: (builder) => {
 
-        // ── Generic pending/rejected helpers ─────────────────────────────────────
         const pending = (state) => { state.loading = true; state.error = null; };
         const rejected = (state, action) => { state.loading = false; state.error = action.payload; };
 
-        // ── fetchNutrition ────────────────────────────────────────────────────────
         builder
             .addCase(fetchNutrition.pending, pending)
             .addCase(fetchNutrition.rejected, rejected)
@@ -380,7 +348,6 @@ const nutritionSlice = createSlice({
                 state.nutrition = action.payload;
             });
 
-        // ── fetchTodaySummary ─────────────────────────────────────────────────────
         builder
             .addCase(fetchTodaySummary.pending, pending)
             .addCase(fetchTodaySummary.rejected, rejected)
@@ -389,7 +356,6 @@ const nutritionSlice = createSlice({
                 state.summary = action.payload;
             });
 
-        // ── addFoodToMeal ─────────────────────────────────────────────────────────
         builder
             .addCase(addFoodToMeal.pending, pending)
             .addCase(addFoodToMeal.rejected, rejected)
@@ -399,7 +365,6 @@ const nutritionSlice = createSlice({
                 state.nutrition[meal].push(item);
             });
 
-        // ── updateFoodInMeal ──────────────────────────────────────────────────────
         builder
             .addCase(updateFoodInMeal.pending, pending)
             .addCase(updateFoodInMeal.rejected, rejected)
@@ -411,7 +376,6 @@ const nutritionSlice = createSlice({
                 );
             });
 
-        // ── deleteFoodFromMeal ────────────────────────────────────────────────────
         builder
             .addCase(deleteFoodFromMeal.pending, pending)
             .addCase(deleteFoodFromMeal.rejected, rejected)
@@ -423,7 +387,6 @@ const nutritionSlice = createSlice({
                 );
             });
 
-        // ── clearMeal ─────────────────────────────────────────────────────────────
         builder
             .addCase(clearMeal.pending, pending)
             .addCase(clearMeal.rejected, rejected)
@@ -432,7 +395,6 @@ const nutritionSlice = createSlice({
                 state.nutrition[action.payload] = [];
             });
 
-        // ── fetchAllLogs ──────────────────────────────────────────────────────────
         builder
             .addCase(fetchAllLogs.pending, (state) => { state.logLoading = true; state.error = null; })
             .addCase(fetchAllLogs.rejected, (state, action) => { state.logLoading = false; state.error = action.payload; })
@@ -441,20 +403,17 @@ const nutritionSlice = createSlice({
                 state.logs = action.payload;
             });
 
-        // ── fetchTodayLog ─────────────────────────────────────────────────────────
         builder
             .addCase(fetchTodayLog.pending, (state) => { state.logLoading = true; state.error = null; })
             .addCase(fetchTodayLog.rejected, (state, action) => { state.logLoading = false; state.error = action.payload; })
             .addCase(fetchTodayLog.fulfilled, (state, action) => {
                 state.logLoading = false;
                 state.todayLog = action.payload;
-                // also upsert into logs array
                 const idx = state.logs.findIndex((l) => l._id === action.payload._id);
                 if (idx !== -1) state.logs[idx] = action.payload;
                 else state.logs.unshift(action.payload);
             });
 
-        // ── fetchLogsSummary ──────────────────────────────────────────────────────
         builder
             .addCase(fetchLogsSummary.pending, (state) => { state.logLoading = true; state.error = null; })
             .addCase(fetchLogsSummary.rejected, (state, action) => { state.logLoading = false; state.error = action.payload; })
@@ -463,7 +422,6 @@ const nutritionSlice = createSlice({
                 state.logsSummary = action.payload;
             });
 
-        // ── fetchLogById ──────────────────────────────────────────────────────────
         builder
             .addCase(fetchLogById.pending, (state) => { state.logLoading = true; state.error = null; })
             .addCase(fetchLogById.rejected, (state, action) => { state.logLoading = false; state.error = action.payload; })
@@ -472,7 +430,6 @@ const nutritionSlice = createSlice({
                 state.selectedLog = action.payload;
             });
 
-        // ── createLog ─────────────────────────────────────────────────────────────
         builder
             .addCase(createLog.pending, (state) => { state.logLoading = true; state.error = null; })
             .addCase(createLog.rejected, (state, action) => { state.logLoading = false; state.error = action.payload; })
@@ -482,29 +439,24 @@ const nutritionSlice = createSlice({
                 if (!exists) state.logs.unshift(action.payload);
             });
 
-        // ── addFoodToLog ──────────────────────────────────────────────────────────
         builder
             .addCase(addFoodToLog.pending, pending)
             .addCase(addFoodToLog.rejected, rejected)
             .addCase(addFoodToLog.fulfilled, (state, action) => {
                 state.loading = false;
                 const { logId, meal, item } = action.payload;
-                // update logs array
                 state.logs = state.logs.map((log) => {
                     if (log._id !== logId) return log;
                     return { ...log, [meal]: [...(log[meal] || []), item] };
                 });
-                // update todayLog if it matches
                 if (state.todayLog?._id === logId) {
                     state.todayLog[meal] = [...(state.todayLog[meal] || []), item];
                 }
-                // update selectedLog if it matches
                 if (state.selectedLog?._id === logId) {
                     state.selectedLog[meal] = [...(state.selectedLog[meal] || []), item];
                 }
             });
 
-        // ── updateFoodInLog ───────────────────────────────────────────────────────
         builder
             .addCase(updateFoodInLog.pending, pending)
             .addCase(updateFoodInLog.rejected, rejected)
@@ -518,7 +470,6 @@ const nutritionSlice = createSlice({
                     state.selectedLog = replaceFoodInLog([state.selectedLog], logId, meal, item)[0];
             });
 
-        // ── deleteFoodFromLog ─────────────────────────────────────────────────────
         builder
             .addCase(deleteFoodFromLog.pending, pending)
             .addCase(deleteFoodFromLog.rejected, rejected)
@@ -534,7 +485,6 @@ const nutritionSlice = createSlice({
                 if (state.selectedLog?._id === logId) state.selectedLog = removeFn(state.selectedLog);
             });
 
-        // ── deleteLog ─────────────────────────────────────────────────────────────
         builder
             .addCase(deleteLog.pending, (state) => { state.logLoading = true; state.error = null; })
             .addCase(deleteLog.rejected, (state, action) => { state.logLoading = false; state.error = action.payload; })
@@ -549,12 +499,6 @@ const nutritionSlice = createSlice({
 
 export const { clearError, clearSelectedLog } = nutritionSlice.actions;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SELECTORS
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Current-day
-// Safe fallback so selectors never crash before fetchNutrition resolves
 const EMPTY_NUTRITION = { breakfast: [], lunch: [], dinner: [], snacks: [] };
 
 export const selectNutrition = (state) => state.nutrition.nutrition ?? EMPTY_NUTRITION;
@@ -562,9 +506,6 @@ export const selectMeal = (meal) => (state) => (state.nutrition.nutrition ?? EMP
 export const selectSummary = (state) => state.nutrition.summary;
 export const selectNutritionLoading = (state) => state.nutrition.loading;
 export const selectNutritionError = (state) => state.nutrition.error;
-
-// Memoized with createSelector — only recomputes when the nutrition object
-// actually changes, eliminating the "different reference" rerender warning.
 export const selectTodayTotals = createSelector(
     selectNutrition,
     (nutrition) => {
@@ -582,7 +523,6 @@ export const selectTodayTotals = createSelector(
     }
 );
 
-// Logs
 export const selectAllLogs = (state) => state.nutrition.logs;
 export const selectTodayLog = (state) => state.nutrition.todayLog;
 export const selectSelectedLog = (state) => state.nutrition.selectedLog;

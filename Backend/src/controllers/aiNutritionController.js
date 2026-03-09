@@ -28,7 +28,6 @@ const parseNum = (val) => {
 const safeJsonExtract = (text) => {
     if (!text) return null;
 
-    // remove markdown fences if model still returns them
     const cleaned = text
         .replace(/```json/gi, "")
         .replace(/```/g, "")
@@ -37,7 +36,6 @@ const safeJsonExtract = (text) => {
     try {
         return JSON.parse(cleaned);
     } catch {
-        // try extracting first JSON array block
         const match = cleaned.match(/\[[\s\S]*\]/);
         if (!match) return null;
 

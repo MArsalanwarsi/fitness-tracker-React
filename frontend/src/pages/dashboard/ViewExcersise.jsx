@@ -24,7 +24,6 @@ import { toast } from "react-toastify"
 import { Link } from "react-router-dom";
 
 
-// ── Difficulty badge ──────────────────────────────────────────────────────────
 const DIFFICULTY_STYLES = {
   beginner: { bg: "#10b98118", color: "#10b981" },
   intermediate: { bg: "#f59e0b18", color: "#f59e0b" },
@@ -41,7 +40,6 @@ const DifficultyBadge = ({ value }) => {
   )
 }
 
-// ── Sort icon ─────────────────────────────────────────────────────────────────
 const SortIcon = ({ column, sorting }) => {
   if (sorting.column !== column) return <ChevronsUpDown className="ml-1.5 h-3.5 w-3.5 opacity-40" />
   return sorting.direction === "asc"
@@ -49,7 +47,6 @@ const SortIcon = ({ column, sorting }) => {
     : <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
 export default function AdvancedExerciseTable() {
   const dispatch = useDispatch()
   const data = useSelector((state) => state.excersise.userExcersises || [])
@@ -120,7 +117,6 @@ export default function AdvancedExerciseTable() {
   return (
     <div className="bg-background p-6 space-y-5">
 
-      {/* ── Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -146,7 +142,6 @@ export default function AdvancedExerciseTable() {
 
       <Separator />
 
-      {/* ── Toolbar ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -198,13 +193,11 @@ export default function AdvancedExerciseTable() {
           </DropdownMenu>
         </div>
 
-        {/* Result count */}
         <p className="text-xs text-muted-foreground sm:ml-auto">
           {processedData.length} result{processedData.length !== 1 ? "s" : ""}
         </p>
       </div>
 
-      {/* ── Table ── */}
       <div className="rounded-xl border overflow-hidden bg-card">
         <Table>
           <TableHeader>
@@ -234,7 +227,6 @@ export default function AdvancedExerciseTable() {
                   </TableCell>
                 )}
 
-                {/* Exercise name + avatar */}
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 rounded-lg border shrink-0">
