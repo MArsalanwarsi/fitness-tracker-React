@@ -35,7 +35,7 @@ export const getDashboard = async (req, res) => {
                 streak: user.streak,
                 activityLogs: user.activityLogs.sort((a, b) => new Date(b.date) - new Date(a.date)),
                 workouts: user.workouts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
-                todayIndex: getTodayIndex(), // send to frontend so charts can highlight today
+                todayIndex: getTodayIndex(),
             },
         });
     } catch (err) {
