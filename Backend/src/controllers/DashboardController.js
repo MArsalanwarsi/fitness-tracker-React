@@ -1,9 +1,5 @@
 import User from "../models/authModel.js";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-
 const UNIT_LABEL = {
     water: "L",
     steps: "steps",
@@ -16,19 +12,8 @@ const UNIT_LABEL = {
 const fmt12h = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-/**
- * Returns the weeklyStats array index for the current day.
- * Array layout: [Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6]
- *
- * JS getDay():  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
- * Formula:      (getDay() + 6) % 7  →  Mon=0 … Sun=6
- */
 const getTodayIndex = () => (new Date().getDay() + 6) % 7;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GET FULL DASHBOARD
-// GET /api/dashboard
-// ─────────────────────────────────────────────────────────────────────────────
 export const getDashboard = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select(
@@ -58,10 +43,6 @@ export const getDashboard = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UPDATE GOALS
-// PUT /api/dashboard/goals
-// ─────────────────────────────────────────────────────────────────────────────
 export const updateGoals = async (req, res) => {
     try {
         const { water, calories, steps, sleep, protein, carbs, fat } = req.body;
@@ -83,11 +64,6 @@ export const updateGoals = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LOG ACTIVITY
-// POST /api/dashboard/log
-// Body: { type, value, note?, caloriesOverride? }
-// ─────────────────────────────────────────────────────────────────────────────
 export const logActivity = async (req, res) => {
     try {
         const { type, value, note = "", caloriesOverride } = req.body;
@@ -99,30 +75,23 @@ export const logActivity = async (req, res) => {
             return res.status(400).json({ error: "value must be a number" });
 
         const val = Number(value);
-        const today = getTodayIndex(); // ← correct day slot (Mon=0 … Sun=6)
+        const today = getTodayIndex(); 
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // ── Update the correct day slot in weeklyStats ────────────────────────
         if (type === "sleep") {
-            // Sleep is a replacement, not cumulative
             user.weeklyStats.sleep[today] = val;
 
         } else if (type === "weight") {
-            // Weight is a replacement
             user.weeklyStats.weight[today] = val;
             user.bmi.weight = val;
 
         } else if (type === "workout") {
-            // Workout has no dedicated stat array — handled separately below
 
         } else {
-            // water / steps / calories — accumulate during the day
             user.weeklyStats[type][today] = (user.weeklyStats[type][today] || 0) + val;
         }
         user.markModified("weeklyStats");
-
-        // ── Side-effects ──────────────────────────────────────────────────────
         if (type === "water") {
             user.waterGlasses = Math.min(user.waterGlasses + Math.round(val * 4), 8);
         }
@@ -143,8 +112,6 @@ export const logActivity = async (req, res) => {
                 date: "Today",
             });
         }
-
-        // ── Activity log entry ────────────────────────────────────────────────
         user.activityLogs.unshift({
             type: type.charAt(0).toUpperCase() + type.slice(1),
             amount: `${val} ${UNIT_LABEL[type] ?? ""}`.trim(),
@@ -172,10 +139,6 @@ export const logActivity = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DELETE ACTIVITY LOG ENTRY
-// DELETE /api/dashboard/log/:logId
-// ─────────────────────────────────────────────────────────────────────────────
 export const deleteActivityLog = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -195,10 +158,6 @@ export const deleteActivityLog = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DELETE WORKOUT
-// DELETE /api/dashboard/workouts/:workoutId
-// ─────────────────────────────────────────────────────────────────────────────
 export const deleteWorkout = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -218,10 +177,6 @@ export const deleteWorkout = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UPDATE MOOD
-// PUT /api/dashboard/mood
-// ─────────────────────────────────────────────────────────────────────────────
 export const updateMood = async (req, res) => {
     try {
         const { mood } = req.body;
@@ -241,10 +196,6 @@ export const updateMood = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UPDATE BMI
-// PUT /api/dashboard/bmi
-// ─────────────────────────────────────────────────────────────────────────────
 export const updateBmi = async (req, res) => {
     try {
         const { height, weight } = req.body;
@@ -254,7 +205,7 @@ export const updateBmi = async (req, res) => {
         if (height !== undefined) user.bmi.height = height;
         if (weight !== undefined) {
             user.bmi.weight = weight;
-            user.weeklyStats.weight[getTodayIndex()] = weight; // ← correct slot
+            user.weeklyStats.weight[getTodayIndex()] = weight; 
             user.markModified("weeklyStats");
         }
 
@@ -265,10 +216,7 @@ export const updateBmi = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UPDATE WATER GLASSES
-// PUT /api/dashboard/water-glasses
-// ─────────────────────────────────────────────────────────────────────────────
+
 export const updateWaterGlasses = async (req, res) => {
     try {
         const count = Number(req.body.count);
@@ -288,10 +236,6 @@ export const updateWaterGlasses = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UPDATE WEEKLY STATS (manual correction)
-// PUT /api/dashboard/weekly-stats
-// ─────────────────────────────────────────────────────────────────────────────
 export const updateWeeklyStats = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -311,13 +255,6 @@ export const updateWeeklyStats = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RESET TODAY'S SLOT (call once per day, e.g. via cron or on login)
-// POST /api/dashboard/reset-today
-//
-// Instead of shifting the whole array (which broke day alignment),
-// we zero out only today's index so yesterday's data stays intact.
-// ─────────────────────────────────────────────────────────────────────────────
 export const resetTodayStats = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -325,21 +262,18 @@ export const resetTodayStats = async (req, res) => {
 
         const today = getTodayIndex();
 
-        // Zero out only today's slot — other days are untouched
         ["water", "calories", "steps", "sleep", "weight"].forEach((k) => {
             user.weeklyStats[k][today] = 0;
         });
         user.markModified("weeklyStats");
 
-        // Reset daily accumulation fields
         user.macros = { protein: 0, carbs: 0, fat: 0 };
         user.waterGlasses = 0;
 
-        // Advance streak: mark yesterday as completed, reset today marker
-        const yesterday = (today + 6) % 7; // one step back in Mon-Sun ring
+        const yesterday = (today + 6) % 7;
         const week = [...(user.streak.week ?? [0, 0, 0, 0, 0, 0, 0])];
-        week[yesterday] = 1;          // yesterday = done
-        week[today] = "today";    // today = current
+        week[yesterday] = 1;  
+        week[today] = "today";
         user.streak.week = week;
         user.streak.count = (user.streak.count || 0) + 1;
         user.markModified("streak");

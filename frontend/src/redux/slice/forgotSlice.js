@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/api";
 
-// FORGOT PASSWORD
 export const forgotPass = createAsyncThunk(
     "forgot/forgotPassword",
     async (email, { rejectWithValue }) => {

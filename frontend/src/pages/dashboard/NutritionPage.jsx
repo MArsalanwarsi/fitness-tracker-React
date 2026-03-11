@@ -29,16 +29,11 @@ import { toast } from "react-toastify"
 import api from "../../api/api"
 import Cookies from 'js-cookie';
 
-// ---------- helpers ----------------------------------------------------------
 const parseNum = (val, d = 1) => {
     const n = parseFloat(val)
     return isNaN(n) ? 0 : +n.toFixed(d)
 }
 const fmt = (val, d = 1) => parseNum(val, d).toFixed(d)
-
-// ---------- AI nutrition lookup (proxied through backend to avoid CORS) --------
-// Calls our own Express route POST /api/nutrition/ai-search via axios.
-// The backend holds the Anthropic API key and forwards the request server-side.
 async function fetchNutritionFromAI(query) {
     const token = Cookies.get('auth_token');
     if (!token) {
@@ -52,7 +47,6 @@ async function fetchNutritionFromAI(query) {
     return data.items ?? []
 }
 
-// ---------- constants --------------------------------------------------------
 const MEAL_TYPES = [
     { key: "breakfast", label: "Breakfast", icon: <Coffee size={14} /> },
     { key: "lunch", label: "Lunch", icon: <Sun size={14} /> },
@@ -69,7 +63,6 @@ const C = {
     fats: "#8b5cf6",
 }
 
-// ---------- scoped styles ----------------------------------------------------
 const ScopedStyles = () => (
     <style>{`
     @keyframes n-pop { from { opacity:0; transform:translateY(4px); } }
@@ -84,7 +77,6 @@ const ScopedStyles = () => (
   `}</style>
 )
 
-// ---------- MacroPill --------------------------------------------------------
 const MacroPill = ({ label, value, unit = "g", color }) => (
     <div className="flex flex-col items-center px-2.5 py-1.5 rounded-xl"
         style={{ background: `${color}12` }}>
@@ -95,7 +87,6 @@ const MacroPill = ({ label, value, unit = "g", color }) => (
     </div>
 )
 
-// ---------- MacroBar ---------------------------------------------------------
 const MacroBar = ({ label, consumed, goal, color }) => {
     const p = Math.min(Math.round((consumed / goal) * 100), 100)
     return (
@@ -114,9 +105,6 @@ const MacroBar = ({ label, consumed, goal, color }) => {
     )
 }
 
-// =============================================================================
-// MAIN PAGE
-// =============================================================================
 export default function NutritionPage() {
     const dispatch = useDispatch()
     const nutrition = useSelector(selectNutrition)
@@ -138,7 +126,6 @@ export default function NutritionPage() {
         if (reduxError) { toast.error(reduxError); dispatch(clearError()) }
     }, [reduxError, dispatch])
 
-    // ---- AI search ------------------------------------------------------------
     const searchFood = async () => {
         if (!query.trim()) return
         setSearching(true); setSearchError(""); setResults([])
@@ -154,7 +141,6 @@ export default function NutritionPage() {
         }
     }
 
-    // ---- scaled preview (live as quantity changes) ---------------------------
     const scaledPreview = useMemo(() => {
         if (!selectedFood || !parseFloat(quantity)) return null
         const scale = parseFloat(quantity) / selectedFood.serving_size_g
@@ -166,7 +152,6 @@ export default function NutritionPage() {
         }
     }, [selectedFood, quantity])
 
-    // ---- add food to Redux + DB ----------------------------------------------
     const confirmAdd = async () => {
         if (!selectedFood || !scaledPreview) return
         const foodData = {
@@ -194,7 +179,6 @@ export default function NutritionPage() {
         if (clearMeal.fulfilled.match(r)) toast.info(`${meal} cleared`)
     }
 
-    // ---- per-meal totals -----------------------------------------------------
     const mealTotals = (meal) => {
         const items = nutrition[meal] || []
         return {
@@ -207,12 +191,10 @@ export default function NutritionPage() {
 
     const calLeft = Math.max(0, DAILY_GOALS.calories - totals.calories)
 
-    // ==========================================================================
     return (
         <>
             <ScopedStyles />
 
-            {/* ---- confirm-add dialog ---- */}
             <Dialog open={!!selectedFood} onOpenChange={(o) => !o && setSelectedFood(null)}>
                 <DialogContent className="sm:max-w-[440px]">
                     <DialogHeader>
@@ -227,7 +209,6 @@ export default function NutritionPage() {
                     {selectedFood && (
                         <div className="space-y-4 pt-1">
 
-                            {/* Base serving macros */}
                             <div>
                                 <p className="text-[11px] text-muted-foreground mb-2">
                                     Per {selectedFood.serving_size_g}g serving:
@@ -240,7 +221,6 @@ export default function NutritionPage() {
                                 </div>
                             </div>
 
-                            {/* Extra detail */}
                             <div className="grid grid-cols-3 gap-2">
                                 {[
                                     { label: "Fiber", val: selectedFood.fiber_g, unit: "g" },
@@ -256,7 +236,6 @@ export default function NutritionPage() {
                                 ))}
                             </div>
 
-                            {/* Quantity */}
                             <div className="space-y-1.5">
                                 <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                                     Quantity (g)
@@ -265,7 +244,6 @@ export default function NutritionPage() {
                                     onChange={(e) => setQuantity(e.target.value)} />
                             </div>
 
-                            {/* Live scaled preview */}
                             {scaledPreview && (
                                 <div className="rounded-xl bg-muted/40 border px-3 py-2.5">
                                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
@@ -282,7 +260,6 @@ export default function NutritionPage() {
                                 </div>
                             )}
 
-                            {/* Meal selector */}
                             <div className="space-y-1.5">
                                 <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Add to</label>
                                 <Select value={activeMeal} onValueChange={setActiveMeal}>
@@ -305,10 +282,8 @@ export default function NutritionPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* ---- page ---- */}
             <div className="bg-background p-6 space-y-6">
 
-                {/* Header */}
                 <div>
                     <div className="flex items-center gap-2 text-muted-foreground mb-1">
                         <Utensils size={14} />
@@ -324,10 +299,8 @@ export default function NutritionPage() {
 
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
 
-                    {/* left column */}
                     <div className="space-y-5">
 
-                        {/* Search card */}
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-base flex items-center gap-2">
@@ -354,7 +327,6 @@ export default function NutritionPage() {
                                     </Button>
                                 </div>
 
-                                {/* Hint */}
                                 <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                                     <Bot size={11} className="text-primary" />
                                     Supports natural language — try "large chicken breast" or "100g of oats with milk"
@@ -362,7 +334,6 @@ export default function NutritionPage() {
 
                                 {searchError && <p className="text-xs text-destructive">{searchError}</p>}
 
-                                {/* Results dropdown */}
                                 {results.length > 0 && (
                                     <div className="rounded-xl border overflow-hidden n-pop">
                                         <div className="px-3 py-2 bg-muted/40 border-b flex items-center justify-between">
@@ -400,7 +371,6 @@ export default function NutritionPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Meal tabs */}
                         <Card>
                             <CardHeader className="pb-0">
                                 <Tabs value={activeMeal} onValueChange={setActiveMeal}>
@@ -443,7 +413,6 @@ export default function NutritionPage() {
 
                                     return (
                                         <div className="space-y-3">
-                                            {/* Meal macro summary */}
                                             <div className="flex items-center gap-2 flex-wrap pb-3 border-b">
                                                 {[
                                                     { l: "Calories", v: mt.calories.toFixed(0), u: "kcal", c: C.calories },
@@ -466,7 +435,6 @@ export default function NutritionPage() {
                                                 </Button>
                                             </div>
 
-                                            {/* Food rows */}
                                             <div className="divide-y rounded-xl border overflow-hidden">
                                                 {entries.map((entry) => (
                                                     <div key={entry._id} className="n-row flex items-center gap-3 px-3 py-2.5">
@@ -493,10 +461,7 @@ export default function NutritionPage() {
                         </Card>
                     </div>
 
-                    {/* right sidebar */}
                     <div className="space-y-4">
-
-                        {/* Calorie ring */}
                         <Card>
                             <CardContent className="pt-5 flex flex-col items-center gap-4">
                                 {(() => {
@@ -534,7 +499,6 @@ export default function NutritionPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Macro bars */}
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2"><Zap size={14} /> Macros</CardTitle>
@@ -546,7 +510,6 @@ export default function NutritionPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Meal breakdown */}
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2"><Flame size={14} /> Meal Breakdown</CardTitle>

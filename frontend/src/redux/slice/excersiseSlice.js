@@ -101,6 +101,27 @@ export const deleteExcersise = createAsyncThunk(
     }
 );
 
+export const updateExcersise=createAsyncThunk(
+    "excersise/updateExcersise",
+    async (excersiseId,excersiseData, { rejectWithValue }) => {
+        const token = Cookies.get('auth_token');
+        if (!token) {
+            return rejectWithValue("No token found");
+        }
+        try {
+            const response = await excesiseCrudApi.put(`/updateExcersise/${excersiseId}`,excersiseData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
+
+
 
 const excersiseSlice = createSlice({
     name: "excersise",

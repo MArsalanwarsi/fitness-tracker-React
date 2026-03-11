@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import WebsiteHome from "@/pages/website/WebsiteHome"
-import PlaceholderPage from "@/pages/dashboard/PlaceholderPage"
 import Login from "@/pages/Login"
 import Register from "@/pages/Register"
 import { Bounce, ToastContainer } from "react-toastify"
@@ -59,11 +58,6 @@ const App = () => {
                   <Route path="Nutritions/Nutritions" element={<NutritionPage />} />
                   <Route path="Nutritions/Recipes" element={<RecipesPage />} />
                   <Route path="profile" element={<Profile />} />
-                  <Route path="settings" element={<PlaceholderPage title="Settings" />} />
-                  <Route path="settings/general" element={<PlaceholderPage title="General Settings" />} />
-                  <Route path="settings/team" element={<PlaceholderPage title="Team Settings" />} />
-                  <Route path="settings/billing" element={<PlaceholderPage title="Billing Settings" />} />
-                  <Route path="settings/limits" element={<PlaceholderPage title="Limits Settings" />} />
                 </Route>
                 <Route path="/login" element={loggedIn ? <Navigate to="/dashboard" /> : <Login />} />
                 <Route path="/register" element={<Register />} />

@@ -13,7 +13,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dumbbell, Target, Activity, Repeat } from "lucide-react";
 import { useDispatch } from "react-redux";
-// CRITICAL: Ensure this import path matches your project structure
 import { getExcersiseById } from "../../redux/slice/excersiseSlice";
 
 export function ExerciseModal({ exerciseId, isOpen, onClose }) {
@@ -27,7 +26,6 @@ export function ExerciseModal({ exerciseId, isOpen, onClose }) {
                 setIsLoading(true);
                 try {
                     const result = await dispatch(getExcersiseById(exerciseId));
-                    // Check if the dispatch was successful
                     if (getExcersiseById.fulfilled.match(result)) {
                         setExercise(result.payload.data);
                     } else {

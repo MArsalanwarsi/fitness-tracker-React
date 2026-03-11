@@ -1,28 +1,21 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import {
-    Search, ChefHat, ExternalLink, Loader2, BookOpen,
-    Clock, Users, Tag, X, Filter, Youtube,
+    Search, ChefHat, ExternalLink, Loader2, BookOpen, Tag, Filter, Youtube,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle,
+    Dialog, DialogContent, 
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
 
-// ── TheMealDB base URL ────────────────────────────────────────────────────────
 const BASE = "https://www.themealdb.com/api/json/v1/1"
 
-// ── Scoped styles ─────────────────────────────────────────────────────────────
 const ScopedStyles = () => (
     <style>{`
     @keyframes r-pop { from { opacity:0; transform:translateY(6px); } }
@@ -35,7 +28,6 @@ const ScopedStyles = () => (
   `}</style>
 )
 
-// ── Recipe card skeleton ──────────────────────────────────────────────────────
 const RecipeSkeleton = () => (
     <div className="rounded-xl border bg-card overflow-hidden">
         <Skeleton className="h-44 w-full rounded-none" />
@@ -46,7 +38,6 @@ const RecipeSkeleton = () => (
     </div>
 )
 
-// ── Ingredient list from meal object ──────────────────────────────────────────
 const getIngredients = (meal) => {
     const ingredients = []
     for (let i = 1; i <= 20; i++) {
@@ -59,7 +50,6 @@ const getIngredients = (meal) => {
     return ingredients
 }
 
-// ── Recipe detail modal ───────────────────────────────────────────────────────
 const RecipeModal = ({ meal, onClose }) => {
     if (!meal) return null
     const ingredients = getIngredients(meal)
@@ -69,7 +59,6 @@ const RecipeModal = ({ meal, onClose }) => {
         <Dialog open={!!meal} onOpenChange={(o) => !o && onClose()}>
             <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden">
                 <ScrollArea className="max-h-[85vh]">
-                    {/* Hero image */}
                     <div className="relative h-56 w-full overflow-hidden">
                         <img src={meal.strMealThumb} alt={meal.strMeal}
                             className="h-full w-full object-cover" />
@@ -94,7 +83,6 @@ const RecipeModal = ({ meal, onClose }) => {
 
                     <div className="p-5 space-y-5">
 
-                        {/* Action links */}
                         <div className="flex gap-2 flex-wrap">
                             {meal.strSource && (
                                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" asChild>
@@ -114,7 +102,6 @@ const RecipeModal = ({ meal, onClose }) => {
 
                         <Separator />
 
-                        {/* Ingredients */}
                         <div>
                             <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
                                 <Tag size={14} className="text-muted-foreground" /> Ingredients
@@ -141,7 +128,6 @@ const RecipeModal = ({ meal, onClose }) => {
 
                         <Separator />
 
-                        {/* Instructions */}
                         <div>
                             <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
                                 <BookOpen size={14} className="text-muted-foreground" /> Instructions
@@ -167,7 +153,6 @@ const RecipeModal = ({ meal, onClose }) => {
     )
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function RecipesPage() {
     const [query, setQuery] = useState("")
     const [recipes, setRecipes] = useState([])
@@ -180,21 +165,18 @@ export default function RecipesPage() {
     const [error, setError] = useState("")
     const [searched, setSearched] = useState(false)
 
-    // ── Load categories on mount ──────────────────────────────────────────────
     useEffect(() => {
         const fetchCategories = async () => {
             try {
                 const res = await fetch(`${BASE}/categories.php`)
                 const data = await res.json()
                 setCategories(data.categories || [])
-            } catch { /* silent */ }
+            } catch {  }
         }
         fetchCategories()
-        // Load popular recipes by default (search 'a')
         fetchBySearch("chicken")
     }, [])
 
-    // ── Search by name ────────────────────────────────────────────────────────
     const fetchBySearch = async (q = query) => {
         if (!q.trim()) return
         setLoading(true)
@@ -213,7 +195,6 @@ export default function RecipesPage() {
         }
     }
 
-    // ── Filter by category ────────────────────────────────────────────────────
     const fetchByCategory = async (category) => {
         if (category === "all") { fetchBySearch("chicken"); return }
         setLoading(true)
@@ -232,11 +213,9 @@ export default function RecipesPage() {
         }
     }
 
-    // ── Open recipe detail ────────────────────────────────────────────────────
     const openDetail = async (meal) => {
         setSelectedMeal(meal)
         if (meal.strInstructions) { setDetailMeal(meal); return }
-        // category filter returns partial data — fetch full
         setDetailLoading(true)
         try {
             const res = await fetch(`${BASE}/lookup.php?i=${meal.idMeal}`)
@@ -257,7 +236,6 @@ export default function RecipesPage() {
 
             <div className="bg-background p-6 space-y-5">
 
-                {/* ── Header ── */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -273,7 +251,6 @@ export default function RecipesPage() {
 
                 <Separator />
 
-                {/* ── Search bar ── */}
                 <div className="flex gap-2 max-w-lg">
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -291,7 +268,6 @@ export default function RecipesPage() {
                     </Button>
                 </div>
 
-                {/* ── Category pills ── */}
                 {categories.length > 0 && (
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest shrink-0">
@@ -319,7 +295,6 @@ export default function RecipesPage() {
                     </div>
                 )}
 
-                {/* ── Result count ── */}
                 {!loading && recipes.length > 0 && (
                     <p className="text-xs text-muted-foreground">
                         {recipes.length} recipe{recipes.length !== 1 ? "s" : ""} found
@@ -327,14 +302,12 @@ export default function RecipesPage() {
                     </p>
                 )}
 
-                {/* ── Error ── */}
                 {error && (
                     <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                         {error}
                     </div>
                 )}
 
-                {/* ── Recipe grid ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {loading
                         ? Array.from({ length: 8 }).map((_, i) => <RecipeSkeleton key={i} />)
@@ -365,7 +338,6 @@ export default function RecipesPage() {
                     }
                 </div>
 
-                {/* Loading spinner for detail */}
                 {detailLoading && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
                         <div className="flex flex-col items-center gap-3">

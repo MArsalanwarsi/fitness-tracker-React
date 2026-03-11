@@ -62,8 +62,6 @@ import {
 } from "recharts";
 import { toast } from "react-toastify";
 import logo from "../../assets/logo/Logo_Mark.png";
-
-// ── constants ─────────────────────────────────────────────────────────────────
 const VIZ = {
   water: "#3b82f6", calories: "#f97316", steps: "#10b981",
   sleep: "#8b5cf6", weight: "#10b981", protein: "#f97316",
@@ -73,12 +71,10 @@ const TYPE_COLOR = {
   Water: VIZ.water, Steps: VIZ.steps, Calories: VIZ.calories,
   Sleep: VIZ.sleep, Workout: VIZ.red, Weight: VIZ.weight,
 };
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Today"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 const UNIT_LABEL = { water: "Litres", calories: "kcal", steps: "steps", sleep: "hours", weight: "kg" };
 const pct = (v, t) => Math.min(Math.round((v / t) * 100), 100);
-
-// ── scoped styles ─────────────────────────────────────────────────────────────
 const ScopedStyles = () => (
   <style>{`
     @keyframes ring-draw { from { stroke-dashoffset: 502; } }
@@ -103,7 +99,6 @@ const ScopedStyles = () => (
   `}</style>
 );
 
-// ── shared components ─────────────────────────────────────────────────────────
 const useChartColors = () => {
   const [colors, setColors] = useState({ bg: "#fff", border: "#e5e7eb", text: "#111827", muted: "#6b7280", tickFill: "#6b7280" });
   useEffect(() => {
@@ -195,9 +190,6 @@ const MetricTile = ({ icon, label, value, sub, pct: p, color }) => (
     </CardContent>
   </Card>
 );
-
-// ── dialogs ───────────────────────────────────────────────────────────────────
-// ── WorkoutLogDialog — picks from saved exercises ────────────────────────────
 const WorkoutLogDialog = ({ onSave, loading }) => {
   const dispatch = useDispatch();
   const exercises = useSelector(selectExercises);
@@ -377,7 +369,6 @@ const WorkoutLogDialog = ({ onSave, loading }) => {
   );
 };
 
-// ── Generic LogDialog (water / steps / calories / sleep / weight) ─────────────
 const LogDialog = ({ type, onSave, loading }) => {
   const [val, setVal] = useState("");
   const [note, setNote] = useState("");
@@ -514,9 +505,6 @@ const BmiDialog = ({ bmi, onSave, loading }) => {
   );
 };
 
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
 export default function Home() {
   const dispatch = useDispatch();
 
@@ -549,7 +537,6 @@ export default function Home() {
     if (error) { toast.error(error); dispatch(clearDashboardError()); }
   }, [error, dispatch]);
 
-  // derived
   const bmiLabel = !bmiVal ? "" : bmiVal < 18.5 ? "Underweight" : bmiVal < 25 ? "Normal" : bmiVal < 30 ? "Overweight" : "Obese";
   const bmiColor = !bmiVal ? VIZ.steps : bmiVal < 18.5 ? VIZ.water : bmiVal < 25 ? VIZ.steps : bmiVal < 30 ? "#f59e0b" : VIZ.red;
   const bmiNeedle = bmiVal ? Math.min(((bmiVal - 15) / 25) * 100, 100) : 0;
@@ -568,7 +555,6 @@ export default function Home() {
   const chartColor = { calories: VIZ.calories, water: VIZ.water, steps: VIZ.steps, sleep: VIZ.sleep }[chartTab];
   const chartUnit = { calories: "kcal", water: "L", steps: "steps", sleep: "h" }[chartTab];
 
-  // handlers
   const handleLog = (type, value, note, caloriesOverride) =>
     dispatch(logActivity({ type, value, note, caloriesOverride }))
       .unwrap()
@@ -598,14 +584,10 @@ export default function Home() {
       <ScopedStyles />
       <div className="bg-background text-foreground p-4 md:p-6 space-y-6">
 
-        {/* Header */}
         <header className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-              {/* <Activity size={20} className="text-primary-foreground" /> */}
-
               <img src={logo} alt="Fitness Tracker Logo" className="h-10 w-10 object-contain invert" />
-
             </div>
             <div>
               <h1 className="text-xl font-black tracking-tight leading-none">Fitness Tracker</h1>
@@ -631,10 +613,8 @@ export default function Home() {
           </div>
         </header>
 
-        {/* ── Dashboard ── */}
         {activeSection === "dashboard" && (
           <div className="space-y-5">
-            {/* Quick log */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[11px] uppercase tracking-widest font-bold text-muted-foreground mr-1">Quick Log:</span>
               {["water", "steps", "calories", "sleep", "weight"].map((t) => (
@@ -642,8 +622,6 @@ export default function Home() {
               ))}
               <WorkoutLogDialog onSave={handleLog} loading={loading} />
             </div>
-
-            {/* Metric tiles */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <MetricTile icon={<Droplets size={17} />} label="Hydration" value={`${today.water}L`} sub={`/ ${goals.water}L`} pct={pct(today.water, goals.water)} color={VIZ.water} />
               <MetricTile icon={<Flame size={17} />} label="Calories" value={today.calories.toLocaleString()} sub={`/ ${goals.calories.toLocaleString()} kcal`} pct={pct(today.calories, goals.calories)} color={VIZ.calories} />
@@ -653,8 +631,6 @@ export default function Home() {
 
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_316px] gap-5">
               <div className="space-y-5">
-
-                {/* Activity chart */}
                 <Card>
                   <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-base flex items-center gap-2"><BarChart2 size={15} /> Activity Trends</CardTitle>
@@ -672,7 +648,7 @@ export default function Home() {
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                         <XAxis dataKey="name" axisLine={false} tickLine={false}
                           tick={{ fill: "var(--recharts-tick, #6b7280)", fontSize: 11 }} dy={8} />
-                        <Tooltip content={<ChartTooltip unit={chartUnit} />} cursor={{ fill: "hsl(var(--muted))", radius: 6 }} />
+                        <Tooltip content={<ChartTooltip unit={chartUnit} />} cursor={{ fill: "rgba(128,128,128,0.1)", radius: 10 }} />
                         <Bar dataKey="val" radius={[5, 5, 0, 0]}>
                           {chartData.map((entry, i) => (
                             <Cell key={i}
@@ -686,8 +662,6 @@ export default function Home() {
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-
-                {/* Weight trend */}
                 <Card>
                   <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-base flex items-center gap-2"><TrendingDown size={15} /> Weight Trend</CardTitle>
@@ -717,8 +691,6 @@ export default function Home() {
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-
-                {/* Activity log */}
                 <Card>
                   <CardHeader className="pb-3 border-b">
                     <CardTitle className="text-sm flex items-center gap-2">
@@ -751,11 +723,7 @@ export default function Home() {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Sidebar */}
               <div className="space-y-5">
-
-                {/* Overall ring */}
                 <Card>
                   <CardContent className="pt-6 flex flex-col items-center gap-4">
                     <Ring value={overallPct} size={136} stroke={11} color="hsl(var(--primary))">
@@ -778,8 +746,6 @@ export default function Home() {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Water glasses */}
                 <Card>
                   <CardHeader className="pb-1">
                     <CardTitle className="text-sm flex items-center justify-between">
@@ -799,7 +765,6 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
-                {/* Macros */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
@@ -814,7 +779,6 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
-                {/* Mood */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2"><Smile size={14} /> Today's Mood</CardTitle>
@@ -836,7 +800,6 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
-                {/* Streak */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
@@ -868,7 +831,6 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
-                {/* BMI */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center justify-between">
@@ -901,7 +863,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Workouts tab ── */}
         {activeSection === "workouts" && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
@@ -952,7 +913,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Nutrition tab ── */}
         {activeSection === "nutrition" && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
