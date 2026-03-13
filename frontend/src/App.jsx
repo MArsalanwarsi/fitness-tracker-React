@@ -40,7 +40,7 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Website Routes */}
+        {/* Website */}
         <Route path="/" element={<WebsiteHome />} />
 
         <Route
@@ -48,7 +48,7 @@ const App = () => {
           element={
             <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
               <Routes>
-                {/* Dashboard Routes */}
+                {/* Dashboard */}
                 <Route path="/dashboard" element={loggedIn ? <DashboardLayout /> : <Navigate to="/login" />}>
                   <Route index element={<Home />} />
                   <Route path="Excersise/addExcersise" element={<AddExercisePage />} />

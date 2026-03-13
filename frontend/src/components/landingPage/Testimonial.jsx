@@ -1,7 +1,33 @@
 import React from "react";
 import TestimonialsComponent from "@/components/testimonials-component-18";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
 
 const Testimonial = () => {
+  useGSAP(() => {
+    gsap.from("#testimonial #box", {
+      filter: "blur(20px)",
+      opacity: 0,
+      duration: .7,
+      scrollTrigger: {
+        trigger: "#testimonial #box",
+        start: "top 30%",
+      },
+    });
+    gsap.from("#testimonial .testimonials", {
+      filter: "blur(20px)",
+      opacity: 0,
+      y: 50,
+      duration: 1,
+      delay: 0.5,
+      scrollTrigger: {
+        trigger: "#testimonial #box",
+        start: "top 30%",
+      },
+    });
+  });
   const testimonials = [
     {
       name: "Ahmed R.",
@@ -33,9 +59,11 @@ const Testimonial = () => {
   ];
 
   return (
-    <div className="w-full h-auto py-16 lg:py-24">
-      <div className="py-16 lg:py-9 bg-primary w-fit mx-auto px-6 lg:px-20 rounded-[40px] text-white font-urbanist">
+    <div id="testimonial" className="w-full h-auto py-16 lg:py-24">
+      <div id="box" className="py-16 lg:py-9 bg-primary w-fit mx-auto px-6 lg:px-20 rounded-[40px] text-white font-urbanist">
+        <div className="testimonials">
         <TestimonialsComponent testimonials={testimonials} />
+        </div>
       </div>
     </div>
   );
