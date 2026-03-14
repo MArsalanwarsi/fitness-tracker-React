@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 export default function ProfileContent(props) {
   return (
@@ -30,11 +31,11 @@ export default function ProfileContent(props) {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="FullName">Full Name</Label>
-                <Input id="FullName" defaultValue={props.data.user.name.split(" ")[0] || ""} />
+                <Input id="FullName" defaultValue={props.data.user.name || ""} readOnly/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue={props.data.user.email || ""} />
+                <Input id="email" type="email" defaultValue={props.data.user.email || ""} readOnly/>
               </div>
             </div>
             <div className="space-y-2">
@@ -42,8 +43,8 @@ export default function ProfileContent(props) {
               <Textarea
                 id="bio"
                 placeholder="Tell us about yourself..."
-                defaultValue="Passionate product designer with 8+ years of experience creating user-centered digital experiences. I love solving complex problems and turning ideas into beautiful, functional products."
-                rows={4} />
+                defaultValue="Fitness is not about perfection, it is about progress — and with every step you track, every goal you set, and every challenge you overcome, you build a better you."
+                rows={4} readOnly/>
             </div>
           </CardContent>
         </Card>
@@ -68,14 +69,6 @@ export default function ProfileContent(props) {
             <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-base">Subscription Plan</Label>
-                <p className="text-muted-foreground text-sm">Pro Plan - $29/month</p>
-              </div>
-              <Button variant="outline">Manage Subscription</Button>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
                 <Label className="text-base">Account Visibility</Label>
                 <p className="text-muted-foreground text-sm">
                   Make your profile visible to other users
@@ -83,14 +76,7 @@ export default function ProfileContent(props) {
               </div>
               <Switch defaultChecked />
             </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label className="text-base">Data Export</Label>
-                <p className="text-muted-foreground text-sm">Download a copy of your data</p>
-              </div>
-              <Button variant="outline">Export Data</Button>
-            </div>
+           
           </CardContent>
         </Card>
 
@@ -129,10 +115,12 @@ export default function ProfileContent(props) {
                   <Label className="text-base">Password</Label>
                   <p className="text-muted-foreground text-sm">Last changed 3 months ago</p>
                 </div>
-                <Button variant="outline">
+                <Link to="/forgetPassword">
+                  <Button variant="outline" className="hover:cursor-pointer">
                   <Key className="mr-2 h-4 w-4" />
                   Change Password
-                </Button>
+                  </Button>
+                </Link>
               </div>
               <Separator />
               <div className="flex items-center justify-between">

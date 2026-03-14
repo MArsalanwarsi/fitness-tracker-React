@@ -155,7 +155,7 @@ export default function ProfileHeader(props) {
               </div>
             </div>
           </div>
-          <Button variant="default">Edit Profile</Button>
+          {/* <Button variant="default">Edit Profile</Button> */}
         </div>
       </CardContent>
     </Card>

@@ -1,6 +1,7 @@
 import React from "react";
 import Title from "../../components/ui/components/Title";
 import FooterMarquee from "../../components/ui/components/FooterMarquee";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -14,12 +15,14 @@ const Footer = () => {
             />
 
             <div className="mt-4 flex justify-center gap-4 sm:mt-6">
-              <a
-                className="inline-block rounded-full border border-primary bg-primary px-4 sm:px-5 py-2 sm:py-3 font-medium text-white shadow-sm transition-colors hover:brightness-95 text-sm sm:text-base"
+              <Link to="/register">
+              <button
+                className="inline-block rounded-full border border-primary bg-primary px-4 sm:px-5 py-2 sm:py-3 font-medium text-white shadow-sm transition-colors hover:brightness-95 text-sm sm:text-base hover:cursor-pointer"
                 href="#"
               >
                 Create Free Account
-              </a>
+                </button>
+                </Link>
             </div>
             <FooterMarquee data={{ classText: "bg-white mt-6 md:mt-10 rounded-[15px] lg:rounded-[30px] md:rounded-[20px] xl:rounded-[50px] text-foreground" }} />
           </div>

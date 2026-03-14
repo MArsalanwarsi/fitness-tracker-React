@@ -14,6 +14,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useSelector, useDispatch } from 'react-redux';
 import { registerUser } from "../redux/slice/authSlice";
+import heroimg from '../assets/Hero_IMG/Hero_IMG.png'
 
 export function SignupForm({ className, ...props }) {
   const dispatch = useDispatch();
@@ -37,10 +38,10 @@ export function SignupForm({ className, ...props }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if(!formData.email.toLowerCase()
-    .match(
-      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-    )){
+    if (!formData.email.toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      )) {
       toast.warn("Please enter a valid Email");
       return;
     }
@@ -53,16 +54,16 @@ export function SignupForm({ className, ...props }) {
       return;
     }
     if (!/^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(formData.password)) {
-    toast.error("Password must be 8+ characters with at least one uppercase letter, one number, and one special character");
-    return;
-  }
+      toast.error("Password must be 8+ characters with at least one uppercase letter, one number, and one special character");
+      return;
+    }
 
     try {
       const resultAction = await dispatch(registerUser(formData));
 
       if (registerUser.fulfilled.match(resultAction)) {
         toast.success("Account created successfully!");
-        navigate("/login"); 
+        navigate("/login");
       } else {
         const message = resultAction.payload?.error || "Registration failed";
         toast.error(message);
@@ -148,25 +149,15 @@ export function SignupForm({ className, ...props }) {
                 </Button>
               </Field>
 
-              <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                Or continue with
-              </FieldSeparator>
-
-              <div className="grid grid-cols-3 gap-4">
-                <Button variant="outline" type="button">Apple</Button>
-                <Button variant="outline" type="button">Google</Button>
-                <Button variant="outline" type="button">Meta</Button>
-              </div>
-
               <FieldDescription className="text-center">
                 Already have an account? <Link to="/login" className="underline">Sign in</Link>
               </FieldDescription>
             </FieldGroup>
           </form>
-          
+
           <div className="bg-muted relative hidden md:block">
             <img
-              src="/placeholder.svg"
+              src={heroimg}
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />

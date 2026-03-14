@@ -3,22 +3,25 @@ import logo from "../../../assets/logo/Fitness_Tracker.png";
 import Avatar from "../../../assets/Avatar/Avatar.png";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
+  const loggedIn = useSelector((state) => state.auth.loggedIn);
   useGSAP(() => {
-    gsap.from("#nav nav",{
+    gsap.from("#nav nav", {
       width: 0,
       duration: 1,
       ease: "power2.out",
     })
-    gsap.from("#nav img",{
+    gsap.from("#nav img", {
       filter: "blur(10px)",
       opacity: 0,
       duration: 1,
       delay: 0.8,
       ease: "power2.out",
     })
-    gsap.from("#nav #btn",{
+    gsap.from("#nav #btn", {
       filter: "blur(10px)",
       opacity: 0,
       duration: 1,
@@ -26,6 +29,7 @@ const Navbar = () => {
       ease: "power2.out",
     })
   })
+
   return (
     <div id="nav" className="w-full flex justify-center items-center pt-5 absolute">
       <nav className="bg-[#ffffff4b] z-20 px-4 sm:px-10 py-2 rounded-full">
@@ -35,12 +39,27 @@ const Navbar = () => {
           </a>
 
           <div id="btn" className="flex items-center gap-2 sm:gap-3 ml-15">
-            <button className="hover:text-primary text-foreground font-normal py-1.5 px-3 sm:py-2 sm:px-4 rounded-full font-urbanist text-sm sm:text-base">
-              Login
-            </button>
-            <button className="bg-foreground hover:brightness-95 text-white font-normal py-1.5 px-3 sm:py-2 sm:px-4 rounded-full font-urbanist text-sm sm:text-base">
-              Register
-            </button>
+            {!loggedIn ? (
+              <>
+                <Link to="/login">
+                  <button className="hover:text-primary text-foreground font-normal py-1.5 px-3 sm:py-2 sm:px-4 rounded-full font-urbanist text-sm sm:text-base hover:cursor-pointer">
+                    Login
+                  </button>
+                </Link>
+                <Link to="/register">
+                  <button className="bg-foreground hover:brightness-95 text-white font-normal py-1.5 px-3 sm:py-2 sm:px-4 rounded-full font-urbanist text-sm sm:text-base hover:cursor-pointer">
+                    Register
+                  </button>
+                </Link>
+              </>) : (
+              <>
+                <Link to="/dashboard">
+                  <button className="bg-foreground hover:brightness-95 text-white font-normal py-1.5 px-3 sm:py-2 sm:px-4 rounded-full font-urbanist text-sm sm:text-base hover:cursor-pointer">
+                    Dashboard
+                  </button>
+                </Link>
+              </>
+            )}
             {/* <button className="ml-1 p-0.5 rounded-full flex items-center justify-center">
               <img src={Avatar} alt="avatar" className="h-6 w-6 sm:h-8 sm:w-8 rounded-full object-cover" />
             </button> */}

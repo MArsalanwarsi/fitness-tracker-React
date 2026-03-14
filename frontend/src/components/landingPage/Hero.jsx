@@ -38,7 +38,7 @@ const Hero = () => {
     });
   });
   return (
-    <div className="w-full min-h-screen flex flex-col">
+    <div className="w-full min-h-screen flex flex-col ">
       <Navbar />
       <section id="hero" className="w-full h-screen flex items-center">
         <div className="w-full pt-30 px-4 py-8 sm:px-6 sm:py-12 md:py-16 lg:py-0 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 lg:gap-12 max-w-7xl mx-auto">

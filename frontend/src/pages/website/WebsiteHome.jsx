@@ -18,8 +18,8 @@ useEffect(() => {
 }, []);
 
     return (
-        <>
-            <div id="smooth-wrapper ">
+        < >
+            <div id="smooth-wrapper" className='overflow-x-hidden'>
         <div id="smooth-content">
           <Hero />
           <LogoMarquee data={{ classText: "bg-primary -mt-10" }} />
