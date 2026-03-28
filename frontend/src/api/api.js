@@ -1,8 +1,8 @@
 import axios from "axios";
-
+// http://localhost:5000/
 
 const api = axios.create({
-    baseURL: `http://localhost:5000`,
+    baseURL: `https://fitness-tracker-express.vercel.app`,
     headers: {
         "Content-Type": "application/json",
     },
@@ -16,14 +16,14 @@ export const exceriseApi = axios.create({
 });
 
 export const excesiseCrudApi = axios.create({
-    baseURL: `http://localhost:5000/exercise`,
+    baseURL: `https://fitness-tracker-express.vercel.app/exercise`,
     headers: {
         "Content-Type": "application/json",
     },
 });
 
 export const categoryCrudApi = axios.create({
-       baseURL: `http://localhost:5000/category`,
+       baseURL: `https://fitness-tracker-express.vercel.app/category`,
     headers: {
         "Content-Type": "application/json",
     },
