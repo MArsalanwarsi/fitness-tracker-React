@@ -20,6 +20,7 @@ import AddCategory from "./pages/dashboard/AddCategory"
 import NutritionPage from "./pages/dashboard/NutritionPage"
 import RecipesPage from "./pages/dashboard/RecipesPage"
 import { ThemeProvider } from '@/components/theme-provider'
+import { Analytics } from "@vercel/analytics/react"
 
 const App = () => {
   const dispatch = useDispatch();
@@ -39,6 +40,7 @@ const App = () => {
 
   return (
     <BrowserRouter>
+      <Analytics />
       <Routes>
         {/* Website */}
         <Route path="/" element={<WebsiteHome />} />
