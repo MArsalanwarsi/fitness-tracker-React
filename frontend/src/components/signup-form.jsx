@@ -38,6 +38,14 @@ export function SignupForm({ className, ...props }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.name.trim()) {
+      toast.warn("Please enter your full name");
+      return;
+    }
+    if (!/^[a-zA-Z\s]+$/.test(formData.name)) {
+      toast.warn("Name should only contain letters and spaces");
+      return;
+    }
     if (!formData.email.toLowerCase()
       .match(
         /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
