@@ -8,9 +8,12 @@ import categoryRouter from "./src/routers/Category.js";
 import Nutritions from "./src/routers/Nutritions.js";
 import Dashboard from "./src/routers/Dashboard.js";
 
-const app =express();
+const app = express();
 const port = process.env.PORT || 1000;
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:5173", "https://fitness-tracker-react.vercel.app"],
+    credentials: true,
+}));
 app.use(express.json());
 
 app.use('/auth', authRouter);
@@ -21,6 +24,6 @@ app.use("/dashboard", Dashboard);
 
 Database();
 
-app.listen(port,()=>{
+app.listen(port, () => {
     console.log(`Server Listen: http://localhost:${port}`)
 })
